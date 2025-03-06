@@ -2,7 +2,8 @@
 
 ## Restaurant Management Platform Integrated with Stellar Blockchain
 
-![MesaChain Banner](https://placeholder.com/mesachain-banner)
+![c62168b7-bc5a-49da-ad4e-2d50bb2a4acf](https://github.com/user-attachments/assets/c454e20e-dffa-4195-9557-f5b580bcf122)
+
 
 ## 🚀 Overview
 
