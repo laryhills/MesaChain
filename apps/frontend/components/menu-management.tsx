@@ -1,19 +1,35 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect } from "react"
+import { Search, Plus, Edit, Trash2, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useDebounce } from "@/lib/hooks/use-debounce"
-import { Edit, Plus, Search, Trash2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
 import Image from "next/image"
-import { useState } from "react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
+// Custom debounce hook for search
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value)
 
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value)
+        }, delay)
+
+        return () => {
+            clearTimeout(handler)
+        }
+    }, [value, delay])
+
+    return debouncedValue
+}
 
 // Define types for menu items
 type Category = "Food" | "Drinks" | "Desserts"
+type FilterCategory = "All" | "Favorites" | Category
 
 interface MenuItem {
     id: string
@@ -22,6 +38,7 @@ interface MenuItem {
     price: number
     category: Category
     image: string
+    isFavorite: boolean
 }
 
 // Sample data
@@ -33,6 +50,7 @@ const initialMenuItems: MenuItem[] = [
         price: 8.63,
         category: "Food",
         image: "/placeholder.svg?height=200&width=200",
+        isFavorite: true,
     },
     {
         id: "2",
@@ -41,6 +59,7 @@ const initialMenuItems: MenuItem[] = [
         price: 8.05,
         category: "Food",
         image: "/placeholder.svg?height=200&width=200",
+        isFavorite: false,
     },
     {
         id: "3",
@@ -49,6 +68,7 @@ const initialMenuItems: MenuItem[] = [
         price: 3.45,
         category: "Food",
         image: "/placeholder.svg?height=200&width=200",
+        isFavorite: false,
     },
     {
         id: "4",
@@ -57,6 +77,7 @@ const initialMenuItems: MenuItem[] = [
         price: 5.99,
         category: "Desserts",
         image: "/placeholder.svg?height=200&width=200",
+        isFavorite: true,
     },
     {
         id: "5",
@@ -65,14 +86,15 @@ const initialMenuItems: MenuItem[] = [
         price: 3.25,
         category: "Drinks",
         image: "/placeholder.svg?height=200&width=200",
+        isFavorite: false,
     },
 ]
 
 export default function MenuManagement() {
     const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems)
-    const [activeCategory, setActiveCategory] = useState<"All" | Category>("All")
     const [searchInput, setSearchInput] = useState("")
     const debouncedSearchQuery = useDebounce(searchInput, 300)
+    const [activeCategory, setActiveCategory] = useState<FilterCategory>("All")
 
     // Filter menu items based on search query and active category
     const filteredMenuItems = menuItems.filter((item) => {
@@ -82,7 +104,12 @@ export default function MenuManagement() {
             item.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
             item.price.toString().includes(debouncedSearchQuery)
 
-        const matchesCategory = activeCategory === "All" || item.category === activeCategory
+        let matchesCategory = true
+        if (activeCategory === "Favorites") {
+            matchesCategory = item.isFavorite
+        } else if (activeCategory !== "All") {
+            matchesCategory = item.category === activeCategory
+        }
 
         return matchesSearch && matchesCategory
     })
@@ -90,6 +117,11 @@ export default function MenuManagement() {
     // Handle menu item deletion
     const handleDelete = (id: string) => {
         setMenuItems(menuItems.filter((item) => item.id !== id))
+    }
+
+    // Handle favorite toggle
+    const handleFavoriteToggle = (id: string) => {
+        setMenuItems(menuItems.map((item) => (item.id === id ? { ...item, isFavorite: !item.isFavorite } : item)))
     }
 
     return (
@@ -125,11 +157,14 @@ export default function MenuManagement() {
             <Tabs
                 defaultValue="All"
                 value={activeCategory}
-                onValueChange={(value) => setActiveCategory(value as "All" | Category)}
+                onValueChange={(value) => setActiveCategory(value as FilterCategory)}
                 className="mb-6"
             >
                 <TabsList>
                     <TabsTrigger value="All">All</TabsTrigger>
+                    <TabsTrigger value="Favorites">
+                        <Star className="h-4 w-4 mr-1 fill-current" /> Favorites
+                    </TabsTrigger>
                     <TabsTrigger value="Food">Food</TabsTrigger>
                     <TabsTrigger value="Drinks">Drinks</TabsTrigger>
                     <TabsTrigger value="Desserts">Desserts</TabsTrigger>
@@ -138,7 +173,12 @@ export default function MenuManagement() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredMenuItems.map((item) => (
-                    <MenuItemCard key={item.id} item={item} onDelete={() => handleDelete(item.id)} />
+                    <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        onDelete={() => handleDelete(item.id)}
+                        onFavoriteToggle={() => handleFavoriteToggle(item.id)}
+                    />
                 ))}
             </div>
         </div>
@@ -148,13 +188,26 @@ export default function MenuManagement() {
 interface MenuItemCardProps {
     item: MenuItem
     onDelete: () => void
+    onFavoriteToggle: () => void
 }
 
-function MenuItemCard({ item, onDelete }: MenuItemCardProps) {
+function MenuItemCard({ item, onDelete, onFavoriteToggle }: MenuItemCardProps) {
     return (
         <Card className="overflow-hidden">
             <div className="relative h-48 bg-gray-200">
                 <Badge className="absolute top-2 right-2 z-10">{item.category}</Badge>
+                <button
+                    className={cn(
+                        "absolute top-2 left-2 z-10 p-1.5 rounded-full transition-colors",
+                        item.isFavorite
+                            ? "bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
+                            : "bg-gray-100 text-gray-400 hover:bg-gray-200",
+                    )}
+                    onClick={onFavoriteToggle}
+                    aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                >
+                    <Star className={cn("h-5 w-5", item.isFavorite && "fill-yellow-500")} />
+                </button>
                 <div className="w-full h-full flex items-center justify-center">
                     <Image
                         src={item.image || "/placeholder.svg"}
@@ -167,7 +220,10 @@ function MenuItemCard({ item, onDelete }: MenuItemCardProps) {
             </div>
             <div className="p-4">
                 <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-bold">{item.name}</h3>
+                    <h3 className="text-xl font-bold flex items-center">
+                        {item.name}
+                        {item.isFavorite && <Star className="h-4 w-4 ml-2 fill-yellow-500 text-yellow-500" />}
+                    </h3>
                     <span className="text-xl font-semibold">${item.price.toFixed(2)}</span>
                 </div>
                 <p className="text-gray-600 mb-4">{item.description}</p>
