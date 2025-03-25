@@ -118,7 +118,7 @@ export default function StaffManagement() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {filteredStaffMembers.map((member) => (
                     <StaffCard key={member.id} member={member} onDelete={() => handleDelete(member.id)} />
                 ))}
