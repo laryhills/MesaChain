@@ -14,7 +14,6 @@ const MesaChainSidebar: FC = () => {
     const checkScreenSize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-
       if (mobile) {
         setIsOpen(false);
       } else {
