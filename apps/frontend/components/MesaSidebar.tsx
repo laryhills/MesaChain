@@ -39,7 +39,7 @@ const Sidebar: React.FC = () => {
 
   const sidebarItems = [
     { icon: FaHome, label: "Dashboard", href: "./" },
-    { icon: FaShoppingCart, label: "POS", href: "/pos" },
+    { icon: FaShoppingCart, label: "Orders & Payments", href: "/demopage" },
     { icon: FaBars, label: "Menu", href: "/menu" },
     { icon: FaUsers, label: "Staff", href: "/staff" },
     { icon: FaShoppingCart, label: "Transactions", href: "/transactions" },

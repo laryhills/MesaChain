@@ -120,7 +120,7 @@ export default function Page() {
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white shadow-sm">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-xl font-medium text-green-600">MesaChain Order</h1>
+            
             <div className="flex items-center space-x-4">
               {orderCompleted && (
                 <button 
