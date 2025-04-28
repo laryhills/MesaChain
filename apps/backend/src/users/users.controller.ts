@@ -10,6 +10,7 @@ import {
   createParamDecorator,
   ExecutionContext,
   Query,
+  HttpCode,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -39,17 +40,13 @@ export const GetUser = createParamDecorator(
 @ApiTags("users")
 @ApiBearerAuth()
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly configService: ConfigService
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "filter", required: false, type: String })
   findAll(
-    @Req() req: Request,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
     @Query("filter") filter?: string
@@ -58,16 +55,22 @@ export class UsersController {
   }
 
   @Get("staff")
-  findStaff(@Req() req: Request) {
-    return this.usersService.findStaff(req.user);
+  @ApiOperation({ summary: "Get all staff users" })
+  findStaff(@GetUser() user: User) {
+    return this.usersService.findStaff(user);
   }
 
   @Get(":id")
+  @ApiOperation({ summary: "Get user by id" })
+  @ApiParam({ name: "id", type: "string", description: "User ID" })
   findOne(@Param("id") id: string) {
     return this.usersService.findOne(id);
   }
 
   @Patch(":id")
+  @ApiOperation({ summary: "Update a user" })
+  @ApiParam({ name: "id", type: "string", description: "User ID" })
+  @ApiBody({ type: UpdateUserDto })
   update(
     @Param("id") id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -77,6 +80,9 @@ export class UsersController {
   }
 
   @Delete(":id")
+  @HttpCode(204)
+  @ApiOperation({ summary: "Delete a user" })
+  @ApiParam({ name: "id", type: "string", description: "User ID" })
   remove(@Param("id") id: string, @Req() req: Request) {
     return this.usersService.remove(id, req.user);
   }
