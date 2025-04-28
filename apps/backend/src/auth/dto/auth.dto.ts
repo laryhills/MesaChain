@@ -18,6 +18,7 @@ export class RegisterDto {
   password: string;
 
   @IsString()
+  @MinLength(1, { message: "Name cannot be empty" })
   name: string;
 }
 

@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsEnum, IsBoolean, IsOptional, MinLength } from 'class-validator';
+import { IsEmail, IsString, IsEnum, IsBoolean, IsOptional, MinLength, Matches } from 'class-validator';
 import { UserRole } from '@prisma/client';
 
 export class UpdateUserDto {
@@ -8,6 +8,9 @@ export class UpdateUserDto {
 
   @IsString()
   @MinLength(8)
+@Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
+ message: 'Password must contain uppercase, lowercase, number and special character'
+})
   @IsOptional()
   password?: string;
 
