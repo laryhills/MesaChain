@@ -20,7 +20,6 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from "@nestjs/swagger";
-import { ConfigService } from "@nestjs/config";
 import { UsersService } from "./users.service";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -43,6 +42,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @ApiOperation({ summary: "Get all users with pagination and filtering" })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "filter", required: false, type: String })
@@ -74,16 +74,16 @@ export class UsersController {
   update(
     @Param("id") id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @Req() req: Request
+    @GetUser() user: User
   ) {
-    return this.usersService.update(id, updateUserDto, req.user);
+    return this.usersService.update(id, updateUserDto, user);
   }
 
   @Delete(":id")
   @HttpCode(204)
   @ApiOperation({ summary: "Delete a user" })
   @ApiParam({ name: "id", type: "string", description: "User ID" })
-  remove(@Param("id") id: string, @Req() req: Request) {
-    return this.usersService.remove(id, req.user);
+  remove(@Param("id") id: string, @GetUser() user: User) {
+    return this.usersService.remove(id, user);
   }
 }
