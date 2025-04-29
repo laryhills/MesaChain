@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Head from 'next/head';
 import MenuItemCard from '@/components/DemoPage/MenuItemCard';
 import OrderSummary from '@/components/DemoPage/OrderSummary';
-import Calculator from '@/components/DemoPage/Calculator';
 import PaymentModal from '@/components/DemoPage/PaymentModal';
 import { MenuItem, OrderItem, PaymentMethod, Order } from '../../types/index';
 import { calculateOrderTotals } from '../../utils/calculateTax';
@@ -74,7 +73,7 @@ export default function Page() {
     );
   };
 
-  const handleCompletePayment = (method: PaymentMethod, amountPaid: number) => {
+  const handleCompletePayment = (method: PaymentMethod) => {
     const receipt: Order = {
       items: orderItems,
       subtotal,
