@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   FaHome,
   FaShoppingCart,
@@ -11,31 +11,11 @@ import {
 } from "react-icons/fa";
 import SidebarItem from "./sidebar/SideBarItems";
 import UserProfile from "./sidebar/UserProfile";
+import { useSidebarStore } from "../store/useSidebarStore";
 
 const Sidebar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedState = localStorage.getItem('sidebarCollapsed');
-      setIsCollapsed(savedState === 'true');
-      setIsReady(true);
-    }
-  }, []);
-
-  const toggleCollapse = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem('sidebarCollapsed', String(newState));
-  };
-
-
-  if (!isReady) {
-    return null;
-  }
+  const { isCollapsed, toggleCollapse } = useSidebarStore();
 
   const sidebarItems = [
     { icon: FaHome, label: "Dashboard", href: "./" },
@@ -51,7 +31,6 @@ const Sidebar: React.FC = () => {
 
   const ToggleCollapseButton = () => (
     <button
-     
       className="text-gray-600 hover:text-green-600 transition-colors"
       aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
     >
@@ -77,11 +56,6 @@ const Sidebar: React.FC = () => {
           lg:translate-x-0 transition-all duration-300 z-40
           ${isCollapsed ? "w-20" : "w-64"}
         `}
-        style={{
-          transitionProperty: 'transform, width',
-          transitionDuration: '300ms',
-          transitionTimingFunction: 'ease-in-out'
-        }}
       >
         <div className="flex flex-col h-full relative">
           <div className="flex items-center flex-row border-b p-6">
@@ -102,8 +76,9 @@ const Sidebar: React.FC = () => {
               </h1>
             </div>
             <div 
-             onClick={toggleCollapse}
-            className={`${!isCollapsed ? "ml-8 mt-2" : "mt-2 ml-0"}`}>
+              onClick={toggleCollapse}
+              className={`${!isCollapsed ? "ml-8 mt-2" : "mt-2 ml-0"}`}
+            >
               <ToggleCollapseButton />
             </div>
           </div>
