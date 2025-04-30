@@ -46,6 +46,11 @@ export function OrderTable({ orders, sortConfig, onSort }: OrderTableProps) {
               >
                 <div className="flex items-center gap-1">
                   {label}
+                  {sortConfig.field === field &&
+                  <span className="ml-1">
+                    {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                  </span>
+                  }
                 </div>
               </th>
             ))}
