@@ -10,33 +10,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN
-  STAFF
-  CUSTOMER
+enum Network {
+  testnet
+  mainnet
+}
+
+enum Status {
+  pending
+  confirmed
+  failed
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String
-  name          String?
-  role          UserRole  @default(STAFF)
-  active        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  refreshTokens RefreshToken[]
+  id            String          @id @default(dbgenerated("gen_random_uuid()"))
+  email         String          @unique
+  passwordHash  String          @map("password_hash")
+  createdAt     DateTime        @default(dbgenerated("now()")) @map("created_at")
+  wallets       StellarWallet[]
 }
 
-model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  revoked   Boolean  @default(false)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model StellarWallet {
+  id         String         @id @default(dbgenerated("gen_random_uuid()"))
+  userId     String         @map("user_id")
+  publicKey  String         @unique @map("public_key")
+  network    Network
+  createdAt  DateTime       @default(dbgenerated("now()")) @map("created_at")
 
-  @@index([userId])
-} 
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+model Transaction {
+  id             String        @id @default(dbgenerated("gen_random_uuid()"))
+  walletId       String        @map("wallet_id")
+  stellarTxHash  String        @unique @map("stellar_tx_hash")
+  amount         Decimal       @db.Decimal(20, 7)
+  assetCode      String        @map("asset_code")
+  status         Status
+  createdAt      DateTime      @default(dbgenerated("now()")) @map("created_at")
+
+  wallet         StellarWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
