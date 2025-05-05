@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from './config.service';
 
+interface QuorumSet {
+  threshold: number;
+  validators: string[];
+}
 @Injectable()
 export class StellarConfig {
   constructor(private configService: ConfigService) {}
@@ -15,7 +19,7 @@ export class StellarConfig {
     };
   }
 
-  private getQuorumSet(network: 'testnet' | 'mainnet') {
+  private getQuorumSet(network: 'testnet' | 'mainnet'): QuorumSet {
     if (network === 'testnet') {
       return {
         threshold: 2,
