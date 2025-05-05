@@ -2,7 +2,7 @@ import OrderHistory from '@/components/OrderHistory';
 
 export const metadata = {
   title: 'Orders History - MesaChain',
-  description: 'View and manage your orders history',
+  description: 'View and manage your order history',
 };
 
 export default function OrderHistoryPage() {
