@@ -1,8 +1,8 @@
 import TransactionHistoryTable from "./transactionHistory";
 
 export const metadata = {
-  title: 'Orders History - MesaChain',
-  description: 'View and manage your order history',
+  title: 'Transactions History - MesaChain',
+  description: 'View and manage your transactions history',
 };
 
 export default function TransactionHistoryPage() {
