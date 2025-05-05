@@ -38,6 +38,11 @@ export default function TransactionHistoryTable() {
 
     useEffect(() => {
         setTransactions(initialTransactionItems);
+       try {
+     setTransactions(initialTransactionItems);
+   } catch (error) {
+     console.error('Failed to load transactions:', error);
+   }
     }, []);
 
     useEffect(() => {
@@ -49,7 +54,7 @@ export default function TransactionHistoryTable() {
         const rows = transactions.map(item => [
             item.stellarAddress,
             new Date(item.time).toLocaleString(),
-            item.amountXML,
+            item.amountXLM,
             item.amountUSD,
             item.fee,
             item.status,
@@ -238,7 +243,7 @@ export default function TransactionHistoryTable() {
               </span>
               </td>
               <td className=" px-3 py-2">{new Date(item.time).toLocaleTimeString([], { year: 'numeric',month: '2-digit',day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true })}</td>
-              <td className=" px-3 py-2 font-bold">{item.amountXML} XLM</td>
+              <td className=" px-3 py-2 font-bold">{item.amountXLM} XLM</td>
               <td className=" px-3 py-2">${item.amountUSD.toFixed(2)}</td>
               <td className=" px-3 py-2">{item.fee} XLM</td>
               <td className=" px-3 py-2">
@@ -259,7 +264,7 @@ export default function TransactionHistoryTable() {
       onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
       disabled={currentPage === 1}
       className="px-3 py-1 border rounded text-sm bg-white hover:bg-gray-100 disabled:opacity-50">
-      Anterior
+      Previous
     </button>
 
     {Array.from({ length: totalPages }, (_, index) => (
@@ -281,7 +286,7 @@ export default function TransactionHistoryTable() {
       disabled={currentPage === totalPages}
       className="px-3 py-1 border rounded text-sm bg-white hover:bg-gray-100 disabled:opacity-50"
     >
-      Siguiente
+      Next
     </button>
   </div>
       )}
