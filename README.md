@@ -89,6 +89,48 @@ MesaChain's architecture consists of three main components:
 - **🌐 Multi-location Support**: Manage multiple establishments from one dashboard
 - **🔌 Supplier Integration**: Streamline ordering and payment processes
 
+## 🌍 Environment Setup
+
+### Required Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```bash
+# Stellar Network Configuration
+STELLAR_NETWORK=testnet  # Options: testnet | mainnet
+HORIZON_URL=https://horizon-testnet.stellar.org  # Testnet URL
+API_BASE_URL_BACKEND=http://localhost:3000
+API_BASE_URL_FRONTEND=http://localhost:5173
+```
+
+For the frontend, create a `.env` file in the `apps/frontend` directory with the same variables:
+
+```bash
+NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
+NEXT_PUBLIC_API_BASE_URL_BACKEND=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL_FRONTEND=http://localhost:5173
+```
+
+### Environment Variable Validation
+
+The application uses Zod for environment variable validation. Missing or malformed variables will cause the application to fail fast with descriptive error messages.
+
+### Switching Between Networks
+
+To switch between testnet and mainnet:
+
+1. Update `STELLAR_NETWORK` to either `testnet` or `mainnet`
+2. Update `HORIZON_URL` accordingly:
+   - Testnet: `https://horizon-testnet.stellar.org`
+   - Mainnet: `https://horizon.stellar.org`
+
+### Security Notes
+
+- Never commit real `.env` files to version control
+- Store production secrets in GitHub Secrets & Variables
+- Use `.env.example` as a template for required variables
+
 ## Setting Up the Frontend
 
 Navigate to the frontend directory and install dependencies:
