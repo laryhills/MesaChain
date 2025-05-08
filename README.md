@@ -4,7 +4,6 @@
 
 ![c62168b7-bc5a-49da-ad4e-2d50bb2a4acf](https://github.com/user-attachments/assets/c454e20e-dffa-4195-9557-f5b580bcf122)
 
-
 ## 🚀 Overview
 
 MesaChain revolutionizes the restaurant and café industry by seamlessly integrating comprehensive management tools with the Stellar blockchain. Our platform addresses critical challenges facing food service establishments while leveraging blockchain technology to reduce costs and enhance customer experiences.
@@ -88,7 +87,7 @@ MesaChain's architecture consists of three main components:
 - **📊 Advanced Analytics**: Make informed decisions with data visualizations
 - **🌐 Multi-location Support**: Manage multiple establishments from one dashboard
 - **🔌 Supplier Integration**: Streamline ordering and payment processes
-
+    
 ## 🌍 Environment Setup
 
 ### Required Environment Variables
@@ -132,54 +131,91 @@ To switch between testnet and mainnet:
 - Use `.env.example` as a template for required variables
 
 ## Setting Up the Frontend
+=======
+## 🎯 Reservation MVP
+>>>>>>> f161148 (refactor(api): remove axios in favor of fetch for http requests)
 
-Navigate to the frontend directory and install dependencies:
+### Prerequisites
+- Node.js 18 or higher
+- pnpm
+- Docker and Docker Compose
 
+### Setup Steps
+
+1. Start PostgreSQL database:
 ```bash
-cd apps/frontend
+pnpm docker:up
+```
+
+2. Install dependencies:
+```bash
 pnpm install
 ```
 
-Build the frontend application:
-
+3. Generate Prisma client:
 ```bash
-npm run build
+cd packages/database
+pnpm prisma generate
+cd ../..
 ```
 
-Start the frontend application:
-
+4. Apply migrations:
 ```bash
-npm run start
+cd packages/database
+pnpm prisma migrate deploy
+cd ../..
 ```
 
-The frontend application should now be running at [http://localhost:3000](http://localhost:3000).
-
----
-
-## Setting Up the Backend
-
-Open a new terminal window, navigate to the root of the project, and then to the backend directory:
-
+5. Start development server:
 ```bash
-cd apps/backend
-pnpm install
+pnpm dev
 ```
 
-Build the backend application:
+### API Endpoints
 
+#### Reservations
+
+- `GET /reservations/availability?startTime&endTime&partySize`
+  - Get available tables for a specific time slot and party size
+  - Parameters:
+    - `startTime`: Start date and time (ISO string)
+    - `endTime`: End date and time (ISO string)
+    - `partySize`: Number of people
+
+- `POST /reservations`
+  - Create a new reservation
+  - Body:
+    ```json
+    {
+      "userId": "uuid",
+      "tableId": "uuid",
+      "startTime": "ISO string",
+      "endTime": "ISO string",
+      "partySize": number
+    }
+    ```
+
+- `PATCH /reservations/:id/cancel`
+  - Cancel an existing reservation
+  - Parameters:
+    - `id`: Reservation ID
+
+### Development
+
+Run tests:
 ```bash
-npm run build
+pnpm test
 ```
 
-Start the backend application:
-
+Run tests in watch mode:
 ```bash
-npm run start
+pnpm test:watch
 ```
 
-The backend API should now be running at [http://localhost:5000](http://localhost:5000).
-
----
+View test coverage:
+```bash
+pnpm test:cov
+```
 
 ## 🚀 Development Workflow
 
@@ -188,8 +224,6 @@ After the initial setup, you can use the following commands for development:
 - `npm run dev` - Start the application in development mode with hot reloading
 - `npm run test` - Run the test suite
 - `npm run lint` - Run the linter to check code quality
-
----
 
 ## ❓ Troubleshooting
 
