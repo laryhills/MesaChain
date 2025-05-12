@@ -25,10 +25,10 @@ model User {
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  refreshTokens RefreshToken[]
+  session Session[]
 }
 
-model RefreshToken {
+model Session {
   id        String   @id @default(uuid())
   token     String   @unique
   userId    String
@@ -39,4 +39,6 @@ model RefreshToken {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
-} 
+}
+
+

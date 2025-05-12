@@ -5,6 +5,7 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
+    "seed": "ts-node src/prisma/seeds/seed.ts",
     "start": "nest start",
     "dev": "nest start --watch",
     "debug": "nest start --debug --watch",
@@ -25,6 +26,7 @@
     "@nestjs/swagger": "^11.1.5",
     "@prisma/client": "5.7.1",
     "bcrypt": "5.1.1",
+    "bcryptjs": "^3.0.2",
     "class-transformer": "0.5.1",
     "class-validator": "0.14.0",
     "passport": "0.7.0",
