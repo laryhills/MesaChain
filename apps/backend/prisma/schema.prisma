@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+
+generator client {
+  provider      = "prisma-client-js"
+  output = "../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Network {
+  testnet
+  mainnet
+}
+
+enum Status {
+  pending
+  confirmed
+  failed
+}
+
+model User {
+  id            String          @id @default(dbgenerated("gen_random_uuid()"))
+  email         String          @unique
+  name          String          @map("name")
+  role          String          @map("role")
+  passwordHash  String          @map("password_hash")
+  createdAt     DateTime        @default(dbgenerated("now()")) @map("created_at")
+  wallets       StellarWallet[]
+  session       Session[]
+}
+
+model StellarWallet {
+  id         String         @id @default(dbgenerated("gen_random_uuid()"))
+  userId     String         @map("user_id")
+  publicKey  String         @unique @map("public_key")
+  network    Network
+  createdAt  DateTime       @default(dbgenerated("now()")) @map("created_at")
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+model Transaction {
+  id             String        @id @default(dbgenerated("gen_random_uuid()"))
+  walletId       String        @map("wallet_id")
+  stellarTxHash  String        @unique @map("stellar_tx_hash")
+  amount         Decimal       @db.Decimal(20, 7)
+  assetCode      String        @map("asset_code")
+  status         Status
+  createdAt      DateTime      @default(dbgenerated("now()")) @map("created_at")
+
+  wallet         StellarWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}

@@ -24,11 +24,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
     });
 
-    if (!user || !user.active) {
+    if (!user) {
       throw new UnauthorizedException();
     }
 
-    delete user.password;
+    delete user.passwordHash;
     return user;
   }
 } 
