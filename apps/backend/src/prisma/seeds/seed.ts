@@ -14,7 +14,6 @@ async function main() {
       email: 'admin@example.com',
       passwordHash: passwordHash,
       name: 'Admin User',
-      role: 'ADMIN',
     },
   });
 
@@ -23,7 +22,6 @@ async function main() {
       email: 'staff@example.com',
       passwordHash: passwordHash,
       name: 'Staff User',
-      role: 'STAFF',
     },
   });
 
@@ -32,7 +30,6 @@ async function main() {
       email: 'customer@example.com',
       passwordHash: passwordHash,
       name: 'Customer User',
-      role: 'CUSTOMER',
     },
   });
 
