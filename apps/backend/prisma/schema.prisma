@@ -12,6 +12,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  USER 
+}
+
 enum Network {
   testnet
   mainnet
@@ -27,12 +32,15 @@ model User {
   id            String          @id @default(dbgenerated("gen_random_uuid()"))
   email         String          @unique
   name          String          @map("name")
-  role          String          @map("role")
+  role          UserRole        @map("role")
   passwordHash  String          @map("password_hash")
+  active        Boolean         @default(true)
   createdAt     DateTime        @default(dbgenerated("now()")) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
   wallets       StellarWallet[]
   session       Session[]
 }
+
 
 model StellarWallet {
   id         String         @id @default(dbgenerated("gen_random_uuid()"))

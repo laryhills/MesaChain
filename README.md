@@ -181,6 +181,10 @@ The backend API should now be running at [http://localhost:5000](http://localhos
 
 ---
 
+
+## Start DB
+
+
 ## 🚀 Development Workflow
 
 After the initial setup, you can use the following commands for development:

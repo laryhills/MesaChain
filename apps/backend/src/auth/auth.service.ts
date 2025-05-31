@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 
+import { UserRole } from '../interfaces/user.interface';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -25,8 +27,9 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
-        passwordHash : hashedPassword,
-        name: dto.name
+        passwordHash: hashedPassword,
+        name: dto.name,
+        role: UserRole.USER 
       },
     });
 
