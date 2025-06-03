@@ -1,13 +1,20 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  output = "../../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER 
 }
 
 enum Network {
@@ -24,10 +31,16 @@ enum Status {
 model User {
   id            String          @id @default(dbgenerated("gen_random_uuid()"))
   email         String          @unique
+  name          String          @map("name")
+  role          UserRole        @map("role")
   passwordHash  String          @map("password_hash")
+  active        Boolean         @default(true)
   createdAt     DateTime        @default(dbgenerated("now()")) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
   wallets       StellarWallet[]
+  session       Session[]
 }
+
 
 model StellarWallet {
   id         String         @id @default(dbgenerated("gen_random_uuid()"))
@@ -50,4 +63,17 @@ model Transaction {
   createdAt      DateTime      @default(dbgenerated("now()")) @map("created_at")
 
   wallet         StellarWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
