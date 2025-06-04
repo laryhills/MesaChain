@@ -3,11 +3,18 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  USER
 }
 
 enum Network {
@@ -28,33 +35,28 @@ enum ReservationStatus {
   COMPLETED
 }
 
-enum UserRole {
-  ADMIN
-  STAFF
-}
-
 model User {
   id            String           @id @default(uuid())
   email         String           @unique
-  password      String
   name          String?
   role          UserRole         @default(STAFF)
+  password      String
   active        Boolean          @default(true)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
+  wallets       StellarWallet[]
+  session       Session[]
   refreshTokens RefreshToken[]
   reservations  Reservation[]
-  wallets       StellarWallet[]
 }
 
 model StellarWallet {
-  id         String         @id @default(uuid())
-  userId     String         @map("user_id")
-  publicKey  String         @unique @map("public_key")
-  network    Network
-  createdAt  DateTime       @default(now()) @map("created_at")
-
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String         @id @default(uuid())
+  userId      String         @map("user_id")
+  publicKey   String         @unique @map("public_key")
+  network     Network
+  createdAt   DateTime       @default(now()) @map("created_at")
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 
   @@index([userId])
@@ -73,27 +75,28 @@ model Transaction {
 }
 
 model Table {
-  id          String         @id @default(uuid())
-  name        String         @unique
-  capacity    Int
-  location    String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id           String         @id @default(uuid())
+  name         String         @unique
+  capacity     Int
+  location     String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   reservations Reservation[]
 }
 
 model Reservation {
-  id          String             @id @default(uuid())
-  userId      String
-  user        User              @relation(fields: [userId], references: [id])
-  tableId     String
-  table       Table             @relation(fields: [tableId], references: [id])
-  startTime   DateTime
-  endTime     DateTime
-  partySize   Int
-  status      ReservationStatus @default(PENDING)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id         String             @id @default(uuid())
+  userId     String
+  tableId    String
+  startTime  DateTime
+  endTime    DateTime
+  partySize  Int
+  status     ReservationStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  user       User              @relation(fields: [userId], references: [id])
+  table      Table             @relation(fields: [tableId], references: [id])
 
   @@unique([tableId, startTime, endTime])
   @@index([userId])
@@ -105,5 +108,19 @@ model RefreshToken {
   userId    String
   token     String   @unique
   createdAt DateTime @default(now())
+
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

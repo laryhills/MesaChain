@@ -217,6 +217,10 @@ View test coverage:
 pnpm test:cov
 ```
 
+
+## Start DB
+
+
 ## 🚀 Development Workflow
 
 After the initial setup, you can use the following commands for development:

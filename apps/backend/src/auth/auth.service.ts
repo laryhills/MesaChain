@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 
+import { UserRole } from '../interfaces/user.interface';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -25,15 +27,16 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         name: dto.name,
+        role: UserRole.USER 
       },
     });
 
     const tokens = await this.generateTokens(user.id, user.email);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-    delete user.password;
+    delete user.passwordHash;
     return { user, ...tokens };
   }
 
@@ -42,11 +45,11 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    if (!user || !user.active) {
+    if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -54,19 +57,19 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-    delete user.password;
+    delete user.passwordHash;
     return { user, ...tokens };
   }
 
   async logout(userId: string) {
-    await this.prisma.refreshToken.updateMany({
+    await this.prisma.session.updateMany({
       where: { userId },
       data: { revoked: true },
     });
   }
 
   async refreshToken(token: string) {
-    const refreshToken = await this.prisma.refreshToken.findUnique({
+    const refreshToken = await this.prisma.session.findUnique({
       where: { token },
       include: { user: true },
     });
@@ -77,7 +80,7 @@ export class AuthService {
 
     const tokens = await this.generateTokens(refreshToken.user.id, refreshToken.user.email);
     await this.saveRefreshToken(refreshToken.user.id, tokens.refreshToken);
-    await this.prisma.refreshToken.update({
+    await this.prisma.session.update({
       where: { id: refreshToken.id },
       data: { revoked: true },
     });
@@ -104,7 +107,7 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await this.prisma.refreshToken.create({
+    await this.prisma.session.create({
       data: {
         token,
         userId,

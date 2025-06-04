@@ -2,22 +2,78 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15
+    image: postgres:16-alpine
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=mesachain
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./apps/backend/prisma/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - mesachain-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mesachain-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+      - ./apps/backend/prisma:/app/prisma
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+      - PORT=${PORT_BACKEND:-4000}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+      - STELLAR_NETWORK=${STELLAR_NETWORK}
+      - HORIZON_URL=${HORIZON_URL}
+      - API_BASE_URL_BACKEND=${API_BASE_URL_BACKEND}
+      - API_BASE_URL_FRONTEND=${API_BASE_URL_FRONTEND}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mesachain-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
     ports:
-      - "3000:3000"
+      - "5000:5000"
     volumes:
       - ./apps/frontend:/app
       - /app/node_modules
@@ -31,24 +87,24 @@ services:
       - VITE_API_BASE_URL_FRONTEND=${API_BASE_URL_FRONTEND}
     depends_on:
       - backend
+    networks:
+      - mesachain-network
 
-  backend:
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
+  adminer:
+    image: adminer
     ports:
-      - "4000:4000"
-    volumes:
-      - ./apps/backend:/app
-      - /app/node_modules
-    env_file:
-      - .env
+      - "8080:8080"
     environment:
-      - NODE_ENV=development
-      - STELLAR_NETWORK=${STELLAR_NETWORK}
-      - HORIZON_URL=${HORIZON_URL}
-      - API_BASE_URL_BACKEND=${API_BASE_URL_BACKEND}
-      - API_BASE_URL_FRONTEND=${API_BASE_URL_FRONTEND}
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    networks:
+      - mesachain-network
 
 volumes:
   postgres_data:
+  redis_data:
+
+networks:
+  mesachain-network:
+    driver: bridge
