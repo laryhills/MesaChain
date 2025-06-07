@@ -29,22 +29,8 @@ export class OrdersService {
       throw new BadRequestException(`Menu items not found or unavailable: ${missingIds.join(', ')}`);
     }
 
-    // Calculate totals
-    let subtotal = 0;
-    const orderItemsData = createOrderDto.items.map(item => {
-      const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
-      const unitPrice = Number(menuItem.price);
-      const totalPrice = unitPrice * item.quantity;
-      subtotal += totalPrice;
-
-      return {
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-        unitPrice: new Decimal(unitPrice),
-        totalPrice: new Decimal(totalPrice),
-        notes: item.notes
-      };
-    });
+    // Calculate totals using helper method
+    const { orderItemsData, subtotal } = this.calculateOrderItems(createOrderDto.items, menuItems);
 
     const tax = subtotal * this.TAX_RATE;
     const total = subtotal + tax;
@@ -240,21 +226,8 @@ export class OrdersService {
         throw new BadRequestException(`Menu items not found or unavailable: ${missingIds.join(', ')}`);
       }
 
-      let subtotal = 0;
-      const orderItemsData = updateOrderDto.items.map(item => {
-        const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
-        const unitPrice = Number(menuItem.price);
-        const totalPrice = unitPrice * item.quantity;
-        subtotal += totalPrice;
-
-        return {
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          unitPrice: new Decimal(unitPrice),
-          totalPrice: new Decimal(totalPrice),
-          notes: item.notes
-        };
-      });
+      // Calculate totals using helper method
+      const { subtotal } = this.calculateOrderItems(updateOrderDto.items, menuItems);
 
       const tax = subtotal * this.TAX_RATE;
       const total = subtotal + tax;
@@ -271,23 +244,16 @@ export class OrdersService {
           where: { orderId: id }
         });
 
-        const orderItemsData = updateOrderDto.items.map(item => {
-          const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
-          const unitPrice = Number(menuItem.price);
-          const totalPrice = unitPrice * item.quantity;
+        // Calculate order items data using helper method
+        const { orderItemsData } = this.calculateOrderItems(updateOrderDto.items, menuItems);
 
-          return {
-            orderId: id,
-            menuItemId: item.menuItemId,
-            quantity: item.quantity,
-            unitPrice: new Decimal(unitPrice),
-            totalPrice: new Decimal(totalPrice),
-            notes: item.notes
-          };
-        });
+        const orderItemsDataWithOrderId = orderItemsData.map(item => ({
+          ...item,
+          orderId: id
+        }));
 
         await tx.orderItem.createMany({
-          data: orderItemsData
+          data: orderItemsDataWithOrderId
         });
       }
 
@@ -401,11 +367,15 @@ export class OrdersService {
       throw new BadRequestException('Order must be in PENDING status for payment processing');
     }
 
+    if (!order.staff.wallets || order.staff.wallets.length === 0) {
+      throw new BadRequestException('Staff member has no wallet configured for payment processing');
+    }
+
     // Here you would integrate with your Stellar payment processing
     // For now, we'll create a placeholder transaction
     const transaction = await this.prisma.transaction.create({
       data: {
-        walletId: order.staff.wallets[0]?.id || '', // Use staff's wallet
+        walletId: order.staff.wallets[0].id, // Use staff's wallet
         stellarTxHash: `mock-tx-${Date.now()}`, // In real implementation, this would be from Stellar
         amount: order.total,
         assetCode: 'USD',
@@ -422,6 +392,29 @@ export class OrdersService {
     });
 
     return updatedOrder;
+  }
+
+  private calculateOrderItems(
+    items: Array<{ menuItemId: string; quantity: number; notes?: string }>,
+    menuItems: Array<{ id: string; price: Decimal }>
+  ): { orderItemsData: any[]; subtotal: number } {
+    let subtotal = 0;
+    const orderItemsData = items.map(item => {
+      const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
+      const unitPrice = Number(menuItem.price);
+      const totalPrice = unitPrice * item.quantity;
+      subtotal += totalPrice;
+
+      return {
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        unitPrice: new Decimal(unitPrice),
+        totalPrice: new Decimal(totalPrice),
+        notes: item.notes
+      };
+    });
+
+    return { orderItemsData, subtotal };
   }
 
   private async generateOrderNumber(): Promise<string> {

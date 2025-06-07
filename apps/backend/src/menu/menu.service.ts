@@ -2,24 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { MenuItem, MenuCategory } from '../interfaces/order.interface';
 import { Decimal } from '@prisma/client/runtime/library';
-
-export interface CreateMenuItemDto {
-  name: string;
-  description?: string;
-  price: number;
-  category: MenuCategory;
-  imageUrl?: string;
-  available?: boolean;
-}
-
-export interface UpdateMenuItemDto {
-  name?: string;
-  description?: string;
-  price?: number;
-  category?: MenuCategory;
-  imageUrl?: string;
-  available?: boolean;
-}
+import { CreateMenuItemDto } from './dto/create-menu-item.dto';
+import { UpdateMenuItemDto } from './dto/update-menu-item.dto';
 
 @Injectable()
 export class MenuService {

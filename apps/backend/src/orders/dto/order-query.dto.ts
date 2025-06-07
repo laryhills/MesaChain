@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsInt, Min, IsUUID, IsDateString, IsString } from 'class-validator';
+import { IsOptional, IsEnum, IsInt, Min, Max, IsUUID, IsDateString, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { OrderStatus } from '../../interfaces/order.interface';
@@ -16,6 +16,7 @@ export class OrderQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(1000, { message: 'Limit cannot exceed 1000 items per page' })
   limit?: number = 10;
 
   @ApiPropertyOptional({
