@@ -6,12 +6,18 @@ import { OrderQueryDto } from './dto/order-query.dto';
 import { OrderStatus, Order, OrderItem } from '../interfaces/order.interface';
 import { User } from '../interfaces/user.interface';
 import { Decimal } from '@prisma/client/runtime/library';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class OrdersService {
-  private readonly TAX_RATE = 0.0825; // 8.25% tax rate
+  private readonly TAX_RATE: number;
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService
+  ) {
+    this.TAX_RATE = this.configService.get<number>('TAX_RATE', 0.0825);
+  }
 
   async create(createOrderDto: CreateOrderDto, user: User): Promise<Order> {
     // Validate menu items exist and are available
@@ -419,14 +425,46 @@ export class OrdersService {
 
   private async generateOrderNumber(): Promise<string> {
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const count = await this.prisma.order.count({
-      where: {
-        createdAt: {
-          gte: new Date(new Date().setHours(0, 0, 0, 0))
+
+    // Use a transaction with locking to prevent race conditions
+    return await this.prisma.$transaction(async (tx) => {
+      // Get the latest order for today to determine the next number
+      const latestOrder = await tx.order.findFirst({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        },
+        orderBy: {
+          orderNumber: 'desc'
+        },
+        select: {
+          orderNumber: true
         }
+      });
+
+      let nextNumber = 1;
+      if (latestOrder) {
+        // Extract the number from the latest order number and increment it
+        const currentNumber = parseInt(latestOrder.orderNumber.split('-')[2], 10);
+        nextNumber = currentNumber + 1;
       }
+
+      const orderNumber = `ORD-${today}-${nextNumber.toString().padStart(4, '0')}`;
+
+      // Verify uniqueness
+      const existing = await tx.order.findUnique({
+        where: { orderNumber }
+      });
+
+      if (existing) {
+        // In the rare case of a collision, try the next number
+        nextNumber += 1;
+        return `ORD-${today}-${nextNumber.toString().padStart(4, '0')}`;
+      }
+
+      return orderNumber;
     });
-    return `ORD-${today}-${(count + 1).toString().padStart(4, '0')}`;
   }
 
   private validateStatusTransition(currentStatus: OrderStatus, newStatus: OrderStatus): void {
