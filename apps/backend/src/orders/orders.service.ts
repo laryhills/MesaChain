@@ -38,8 +38,8 @@ export class OrdersService {
     // Calculate totals using helper method
     const { orderItemsData, subtotal } = this.calculateOrderItems(createOrderDto.items, menuItems);
 
-    const tax = subtotal * this.TAX_RATE;
-    const total = subtotal + tax;
+    const tax = new Decimal(subtotal).mul(this.TAX_RATE);
+    const total = new Decimal(subtotal).plus(tax);
 
     // Generate order number
     const orderNumber = await this.generateOrderNumber();
@@ -55,8 +55,8 @@ export class OrdersService {
           customerEmail: createOrderDto.customerEmail,
           notes: createOrderDto.notes,
           subtotal: new Decimal(subtotal),
-          tax: new Decimal(tax),
-          total: new Decimal(total),
+          tax,
+          total,
           status: OrderStatus.PENDING,
           items: {
             create: orderItemsData
@@ -98,7 +98,7 @@ export class OrdersService {
     const { page = 1, limit = 10, status, startDate, endDate, staffId, search } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where = {} as any;
 
     if (status) {
       where.status = status;
@@ -207,12 +207,12 @@ export class OrdersService {
       throw new BadRequestException('Cannot modify order in current status');
     }
 
-    let updateData: any = {
-      customerName: updateOrderDto.customerName,
-      customerPhone: updateOrderDto.customerPhone,
-      customerEmail: updateOrderDto.customerEmail,
-      notes: updateOrderDto.notes
-    };
+    const updateData = {} as any;
+    ['customerName', 'customerPhone', 'customerEmail', 'notes'].forEach(key => {
+      if (updateOrderDto[key] !== undefined) {
+        updateData[key] = updateOrderDto[key];
+      }
+    });
 
     let menuItems: any[] = [];
 
@@ -235,12 +235,12 @@ export class OrdersService {
       // Calculate totals using helper method
       const { subtotal } = this.calculateOrderItems(updateOrderDto.items, menuItems);
 
-      const tax = subtotal * this.TAX_RATE;
-      const total = subtotal + tax;
+      const tax = new Decimal(subtotal).mul(this.TAX_RATE);
+      const total = new Decimal(subtotal).plus(tax);
 
       updateData.subtotal = new Decimal(subtotal);
-      updateData.tax = new Decimal(tax);
-      updateData.total = new Decimal(total);
+      updateData.tax = tax;
+      updateData.total = total;
     }
 
     const updatedOrder = await this.prisma.$transaction(async (tx) => {
@@ -390,14 +390,10 @@ export class OrdersService {
     });
 
     // Update order with transaction and mark as completed
-    const updatedOrder = await this.updateStatus(id, OrderStatus.COMPLETED, user, 'Payment processed');
+    await this.updateStatus(id, OrderStatus.COMPLETED, user, 'Payment processed');
 
-    await this.prisma.order.update({
-      where: { id },
-      data: { transactionId: transaction.id }
-    });
-
-    return updatedOrder;
+    const finalOrder = await this.findOne(id);
+    return finalOrder;
   }
 
   private calculateOrderItems(
@@ -405,8 +401,9 @@ export class OrdersService {
     menuItems: Array<{ id: string; price: Decimal }>
   ): { orderItemsData: any[]; subtotal: number } {
     let subtotal = 0;
+    const menuMap = new Map(menuItems.map(mi => [mi.id, mi]));
     const orderItemsData = items.map(item => {
-      const menuItem = menuItems.find(mi => mi.id === item.menuItemId);
+      const menuItem = menuMap.get(item.menuItemId);
       const unitPrice = Number(menuItem.price);
       const totalPrice = unitPrice * item.quantity;
       subtotal += totalPrice;
