@@ -1,5 +1,5 @@
-import { Controller, Get, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Res, Req } from '@nestjs/common';
+import { Response, Request } from 'express';
 import { AppService } from './app.service';
 import { ConfigService } from './config/config.service';
 import * as client from 'prom-client';
