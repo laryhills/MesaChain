@@ -102,56 +102,37 @@ services:
       - mesachain-network
 
   prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./alert.rules.yml:/etc/prometheus/alert.rules.yml
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
-      - '--storage.tsdb.retention.time=15d'
-      - '--alertmanager.url=http://alertmanager:9093'
-    ports:
-      - '9090:9090'
-    networks:
-      - mesachain-network
-    depends_on:
-      - alertmanager
+     image: prom/prometheus:v2.52.0   # pin to a specific, tested version
+    restart: unless-stopped
+     healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
-  alertmanager:
-    image: prom/alertmanager:latest
-    volumes:
-      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-    ports:
-      - '9093:9093'
-    networks:
-      - mesachain-network
+   alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    secrets:
+      - alertmanager_slack_webhook
 
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - '3000:3000'
+    grafana:
+    image: grafana/grafana:10.4.2
+    restart: unless-stopped
+    volumes:
+    grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on:
-      - prometheus
-    networks:
-      - mesachain-network
+    GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+    GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Set strong password}
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
-    environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-    ports:
-      - '9200:9200'
-    networks:
-      - mesachain-network
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
+     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.13.4

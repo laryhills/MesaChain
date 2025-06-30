@@ -2,8 +2,9 @@ groups:
   - name: MesaChain Alerts
     rules:
       - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
-        for: 5m
+        expr: |
+        (sum(rate(http_requests_total{status=~"5.."}[5m])) /
+         sum(rate(http_requests_total[5m]))) > 0.05
         labels:
           severity: critical
         annotations:
@@ -11,7 +12,7 @@ groups:
           description: "More than 5% of requests are failing with 5xx errors."
 
       - alert: HighCPUUsage
-        expr: process_cpu_seconds_total > 80
+       expr: rate(process_cpu_seconds_total[5m]) > 0.8
         for: 5m
         labels:
           severity: warning

@@ -31,8 +31,16 @@ export class AppController {
   }
 
   @Get('metrics')
-  async getMetrics(@Res() res: Response) {
-    res.set('Content-Type', client.register.contentType);
-    res.end(await client.register.metrics());
+async getMetrics(@Res() res: Response, @Req() req: Request) {
+  // Example: Basic IP filtering (configure allowed IPs in environment)
+  const allowedIPs = process.env.METRICS_ALLOWED_IPS?.split(',') || ['127.0.0.1'];
+  const clientIP = req.ip || req.connection.remoteAddress;
+  
+  if (!allowedIPs.includes(clientIP)) {
+    return res.status(403).send('Forbidden');
+  }
+  
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
   }
 }
