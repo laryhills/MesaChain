@@ -103,7 +103,9 @@ services:
 
   alertmanager:
     image: prom/alertmanager:v0.27.0
-     restart: unless-stopped
+       restart: unless-stopped
+    secrets:
+      - alertmanager_slack_webhook     # keep creds out of VCS
     ports:
       - "9093:9093"
     volumes:
@@ -113,7 +115,7 @@ services:
     depends_on:
       - prometheus
 
-  prometheus:
+ prometheus:
      image: prom/prometheus:v2.52.0
     restart: unless-stopped
     ports:
@@ -144,37 +146,22 @@ services:
     depends_on:
       - prometheus
 
-  elasticsearch:
-      image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
-    restart: unless-stopped
-    ports:
-      - "9200:9200"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
-    networks:
-      - mesachain-network
-    ulimits:
-      memlock:
-        soft: -1
-       healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+     elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+     ulimits:
+       memlock:
+         soft: -1
+         hard: -1
+     healthcheck:
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.13.4
-    volumes:
-      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-    ports:
-      - '5000:5000'
-    depends_on:
-      - elasticsearch
-    networks:
-      - mesachain-network
+    restart: unless-stopped
+    healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:9600/_node/pipelines"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.13.4
