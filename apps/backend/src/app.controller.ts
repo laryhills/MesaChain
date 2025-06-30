@@ -1,6 +1,11 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { AppService } from './app.service';
 import { ConfigService } from './config/config.service';
+import * as client from 'prom-client';
+
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics();
 
 @Controller()
 export class AppController {
@@ -24,4 +29,10 @@ export class AppController {
       stellarNetworkPassphrase: this.configService.stellarNetworkPassphrase,
     };
   }
-} 
+
+  @Get('metrics')
+  async getMetrics(@Res() res: Response) {
+    res.set('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+  }
+}
