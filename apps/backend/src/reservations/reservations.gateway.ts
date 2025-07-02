@@ -7,17 +7,19 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { ReservationsService } from "./reservations.service";
-import { ReservationStatus } from "@prisma/client";
 import { UseGuards } from "@nestjs/common";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
-import { WsException } from '@nestjs/websockets';
+import { JwtService } from "@nestjs/jwt";
+import { WsException } from "@nestjs/websockets";
 
 @WebSocketGateway({ cors: true })
 export class ReservationsGateway {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly reservationsService: ReservationsService) {}
+  constructor(
+    private readonly reservationsService: ReservationsService,
+    private readonly jwtService: JwtService
+  ) {}
 
   // Called by service when status changes
   broadcastStatusUpdate(
@@ -43,30 +45,62 @@ export class ReservationsGateway {
     @ConnectedSocket() client: Socket
   ) {
     // Extract and verify JWT from socket handshake
-  const user = await this.validateSocketUser(client);
-  
-  // Verify user owns this reservation or is staff/admin
-  const reservation = await this.reservationsService.findOne(data.reservationId);
-  if (reservation.userId !== user.id && !['STAFF', 'ADMIN'].includes(user.role)) {
-    throw new WsException('Unauthorized');
-  }
-  
+    const user = await this.validateSocketUser(client);
+
+    // Verify user owns this reservation or is staff/admin
+    const reservation = await this.reservationsService.findOne(
+      data.reservationId
+    );
+    if (
+      reservation.userId !== user.id &&
+      !["STAFF", "ADMIN"].includes(user.role)
+    ) {
+      throw new WsException("Unauthorized");
+    }
+
     client.join(`reservation_${data.reservationId}`);
   }
 
   // Staff can join a room for all active orders
   @SubscribeMessage("joinStaff")
   async handleJoinStaff(@ConnectedSocket() client: Socket) {
-      const user = await this.validateSocketUser(client);
-      
-      if (!['STAFF', 'ADMIN'].includes(user.role)) {
-        throw new WsException('Unauthorized');
-      }
+    const user = await this.validateSocketUser(client);
+
+    if (!["STAFF", "ADMIN"].includes(user.role)) {
+      throw new WsException("Unauthorized");
+    }
     client.join("staff");
   }
 
   // Broadcast to staff
   broadcastToStaff(event: string, payload: any) {
     this.server.to("staff").emit(event, payload);
+  }
+
+  private async validateSocketUser(client: Socket) {
+    try {
+      // Extract token from socket handshake auth or query
+      const token =
+        client.handshake.auth?.token || client.handshake.query?.token;
+      if (!token) {
+        throw new WsException("No authentication token provided");
+      }
+
+      // Verify JWT and return user (you'll need to inject JwtService)
+      // This is a simplified example - adapt to your auth implementation
+      const payload = this.jwtService.verify(token);
+      // You must implement findUserById in ReservationsService or replace with your actual user lookup
+      const user = (await (this.reservationsService as any).findUserById)
+        ? await (this.reservationsService as any).findUserById(payload.sub)
+        : null;
+
+      if (!user) {
+        throw new WsException("Invalid user");
+      }
+
+      return user;
+    } catch (error) {
+      throw new WsException("Authentication failed");
+    }
   }
 }

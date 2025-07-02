@@ -7,20 +7,19 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.session.deleteMany();
 
-  const passwordHash = await hash("password123", 10);
-
-   const hashedPassword = await hash("password123", 10);
-   await prisma.user.create({
-     data: {
-       // …other fields
-       password: hashedPassword,
-     }
-   });
+  const hashedPassword = await hash("password123", 10);
+  const admin = await prisma.user.create({
+    data: {
+      email: "admin@example.com",
+      password: hashedPassword,
+      name: "Admin User",
+    },
+  });
 
   const staff = await prisma.user.create({
     data: {
       email: "staff@example.com",
-      passwordHash: passwordHash,
+      password: hashedPassword,
       name: "Staff User",
     },
   });
@@ -28,7 +27,7 @@ async function main() {
   const customer = await prisma.user.create({
     data: {
       email: "customer@example.com",
-      passwordHash: passwordHash,
+      password: hashedPassword,
       name: "Customer User",
     },
   });
