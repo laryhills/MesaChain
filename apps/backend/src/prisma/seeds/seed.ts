@@ -9,13 +9,13 @@ async function main() {
 
   const passwordHash = await hash("password123", 10);
 
-  const admin = await prisma.user.create({
-    data: {
-      email: "admin@example.com",
-      passwordHash: passwordHash,
-      name: "Admin User",
-    },
-  });
+   const hashedPassword = await hash("password123", 10);
+   await prisma.user.create({
+     data: {
+       // …other fields
+       password: hashedPassword,
+     }
+   });
 
   const staff = await prisma.user.create({
     data: {

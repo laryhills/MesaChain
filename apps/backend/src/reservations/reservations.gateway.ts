@@ -7,32 +7,10 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { ReservationsService } from "./reservations.service";
-// Try importing ReservationStatus from generated Prisma client, fallback to string union if not available
-let ReservationStatus: any;
-type ReservationStatusType =
-  | "PENDING"
-  | "CONFIRMED"
-  | "IN_PREPARATION"
-  | "READY"
-  | "DELIVERED"
-  | "COMPLETED"
-  | "CANCELLED";
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  ReservationStatus = require("@prisma/client").ReservationStatus;
-} catch {
-  ReservationStatus = {
-    PENDING: "PENDING",
-    CONFIRMED: "CONFIRMED",
-    IN_PREPARATION: "IN_PREPARATION",
-    READY: "READY",
-    DELIVERED: "DELIVERED",
-    COMPLETED: "COMPLETED",
-    CANCELLED: "CANCELLED",
-  };
-}
+import { ReservationStatus } from "@prisma/client";
 import { UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { WsException } from '@nestjs/websockets';
 
 @WebSocketGateway({ cors: true })
 export class ReservationsGateway {
@@ -60,16 +38,30 @@ export class ReservationsGateway {
 
   // Clients join a room for their reservation
   @SubscribeMessage("joinReservation")
-  handleJoinReservation(
+  async handleJoinReservation(
     @MessageBody() data: { reservationId: string },
     @ConnectedSocket() client: Socket
   ) {
+    // Extract and verify JWT from socket handshake
+  const user = await this.validateSocketUser(client);
+  
+  // Verify user owns this reservation or is staff/admin
+  const reservation = await this.reservationsService.findOne(data.reservationId);
+  if (reservation.userId !== user.id && !['STAFF', 'ADMIN'].includes(user.role)) {
+    throw new WsException('Unauthorized');
+  }
+  
     client.join(`reservation_${data.reservationId}`);
   }
 
   // Staff can join a room for all active orders
   @SubscribeMessage("joinStaff")
-  handleJoinStaff(@ConnectedSocket() client: Socket) {
+  async handleJoinStaff(@ConnectedSocket() client: Socket) {
+      const user = await this.validateSocketUser(client);
+      
+      if (!['STAFF', 'ADMIN'].includes(user.role)) {
+        throw new WsException('Unauthorized');
+      }
     client.join("staff");
   }
 

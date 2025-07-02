@@ -95,27 +95,6 @@ export class ReservationsController {
     return this.reservationsService.remove(id);
   }
 
-  @Patch(":id/status")
-  async updateStatus(
-    @Param("id") id: string,
-    @Body("status")
-    status:
-      | "PENDING"
-      | "CONFIRMED"
-      | "IN_PREPARATION"
-      | "READY"
-      | "DELIVERED"
-      | "COMPLETED"
-      | "CANCELLED",
-    @Req() req: any
-  ) {
-    // Only staff/admin can update status
-    if (!["STAFF", "ADMIN"].includes(req.user?.role)) {
-      throw new ForbiddenException("No autorizado");
-    }
-    return this.reservationsService.updateStatus(id, status, req.user.id);
-  }
-
   @Get(":id/status-history")
   async getStatusHistory(@Param("id") id: string) {
     return this.reservationsService.getStatusHistory(id);
