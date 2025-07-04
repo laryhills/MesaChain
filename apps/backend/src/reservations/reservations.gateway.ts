@@ -51,6 +51,9 @@ export class ReservationsGateway {
     const reservation = await this.reservationsService.findOne(
       data.reservationId
     );
+    if (!reservation) {
+    throw new WsException("Reservation not found");
+    }
     if (
       reservation.userId !== user.id &&
       !["STAFF", "ADMIN"].includes(user.role)
@@ -89,10 +92,7 @@ export class ReservationsGateway {
       // Verify JWT and return user (you'll need to inject JwtService)
       // This is a simplified example - adapt to your auth implementation
       const payload = this.jwtService.verify(token);
-      // You must implement findUserById in ReservationsService or replace with your actual user lookup
-      const user = (await (this.reservationsService as any).findUserById)
-        ? await (this.reservationsService as any).findUserById(payload.sub)
-        : null;
+      const user = await this.reservationsService.findUserById(payload.sub);
 
       if (!user) {
         throw new WsException("Invalid user");

@@ -37,6 +37,9 @@ import { ReservationsGateway } from "./reservations.gateway";
 
 @Injectable()
 export class ReservationsService {
+  async findUserById(userId: string) {
+    return this.prisma.user.findUnique({ where: { id: userId } });
+  }
   constructor(
     private prisma: PrismaService,
     private gateway: ReservationsGateway

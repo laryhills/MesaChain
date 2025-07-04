@@ -4,7 +4,8 @@ import { io, Socket } from "socket.io-client";
 // Adjust this URL if your backend runs elsewhere
 const SOCKET_URL =
   typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
+    ? process.env.NEXT_PUBLIC_SOCKET_URL ||
+      `${window.location.protocol}//${window.location.hostname}:3000`
     : "";
 
 export type OrderStatus =
@@ -26,11 +27,27 @@ export function useOrderStatusSocket(
   isStaff?: boolean
 ) {
   const [status, setStatus] = useState<OrderStatus | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     const socket = io(SOCKET_URL, { transports: ["websocket"] });
     socketRef.current = socket;
+
+    socket.on("connect", () => {
+      setIsConnected(true);
+      setError(null);
+    });
+
+    socket.on("disconnect", () => {
+      setIsConnected(false);
+    });
+
+    socket.on("connect_error", (err: Error) => {
+      setError(err.message);
+      setIsConnected(false);
+    });
 
     if (reservationId) {
       socket.emit("joinReservation", { reservationId });
@@ -56,5 +73,5 @@ export function useOrderStatusSocket(
     socketRef.current?.emit("joinStaff");
   }, []);
 
-  return { status, joinReservation, joinStaff };
+  return { status, isConnected, error, joinReservation, joinStaff };
 }
