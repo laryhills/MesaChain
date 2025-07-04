@@ -31,8 +31,17 @@ export function useOrderStatusSocket(
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
+   useEffect(() => {
+       setStatus(null);
+     }, [reservationId, isStaff]);
+
   useEffect(() => {
-    const socket = io(SOCKET_URL, { transports: ["websocket"] });
+     const token = auth.getToken(); // however you retrieve the current user’s JWT
+    const socket = io(SOCKET_URL, {
+    transports: ["websocket"],
+    auth: { token },
+ });
+
     socketRef.current = socket;
 
     socket.on("connect", () => {
