@@ -133,4 +133,23 @@ export class ReservationsController {
     }
     return { status: reservation.status };
   }
+
+  @Patch(":id/status")
+  async updateReservationStatus(
+    @Param("id") id: string,
+    @Body() body: { status: string },
+    @Req() req: any
+  ) {
+    // Only staff/admin can update status
+    if (!["STAFF", "ADMIN"].includes(req.user?.role)) {
+      throw new ForbiddenException("No autorizado");
+    }
+    
+    const validStatuses = ["PENDING", "CONFIRMED", "IN_PREPARATION", "READY", "DELIVERED", "COMPLETED", "CANCELLED"];
+    if (!validStatuses.includes(body.status)) {
+      throw new BadRequestException("Estado inválido");
+    }
+    
+    return this.reservationsService.updateStatus(id, body.status as any, req.user.id);
+  }
 }
