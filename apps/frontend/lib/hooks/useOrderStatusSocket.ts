@@ -31,16 +31,17 @@ export function useOrderStatusSocket(
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
-   useEffect(() => {
-       setStatus(null);
-     }, [reservationId, isStaff]);
+  useEffect(() => {
+    setStatus(null);
+  }, [reservationId, isStaff]);
 
   useEffect(() => {
-     const token = auth.getToken(); // however you retrieve the current user’s JWT
+    // TODO: Implement proper authentication when needed
+    // const token = auth.getToken(); // however you retrieve the current user's JWT
     const socket = io(SOCKET_URL, {
-    transports: ["websocket"],
-    auth: { token },
- });
+      transports: ["websocket"],
+      // auth: { token }, // uncomment when auth is implemented
+    });
 
     socketRef.current = socket;
 

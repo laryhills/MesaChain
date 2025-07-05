@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { IconType } from 'react-icons';
@@ -17,9 +19,15 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   isCollapsed = false
 }) => {
   const pathname = usePathname();
-  const isActive = pathname === href;
+  const [isMounted, setIsMounted] = useState(false);
   
- 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Only check for active state after component is mounted
+  const isActive = isMounted && pathname === href;
+  
   const handleClick = (e: React.MouseEvent) => {
     if (isActive) {
       e.preventDefault();
