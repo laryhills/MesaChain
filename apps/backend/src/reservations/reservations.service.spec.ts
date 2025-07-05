@@ -1,10 +1,35 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReservationsService } from './reservations.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { ConflictException, NotFoundException } from '@nestjs/common';
-import { ReservationStatus } from '@prisma/client';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ReservationsService } from "./reservations.service";
+import { PrismaService } from "../prisma/prisma.service";
+import { ConflictException, NotFoundException } from "@nestjs/common";
+import { ReservationsGateway } from "./reservations.gateway";
 
-describe('ReservationsService', () => {
+// Try importing ReservationStatus from generated Prisma client, fallback to string union if not available
+let ReservationStatus: any;
+type ReservationStatusType =
+  | "PENDING"
+  | "CONFIRMED"
+  | "IN_PREPARATION"
+  | "READY"
+  | "DELIVERED"
+  | "COMPLETED"
+  | "CANCELLED";
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  ReservationStatus = require("@prisma/client").ReservationStatus;
+} catch {
+  ReservationStatus = {
+    PENDING: "PENDING",
+    CONFIRMED: "CONFIRMED",
+    IN_PREPARATION: "IN_PREPARATION",
+    READY: "READY",
+    DELIVERED: "DELIVERED",
+    COMPLETED: "COMPLETED",
+    CANCELLED: "CANCELLED",
+  };
+}
+
+describe("ReservationsService", () => {
   let service: ReservationsService;
   let prisma: PrismaService;
 
@@ -20,7 +45,10 @@ describe('ReservationsService', () => {
     table: {
       findMany: jest.fn(),
     },
+    reservationStatusHistory: { create: jest.fn(), findMany: jest.fn() },
   };
+
+  const mockGateway = { broadcastStatusUpdate: jest.fn() };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -30,6 +58,10 @@ describe('ReservationsService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: ReservationsGateway,
+          useValue: mockGateway,
+        },
       ],
     }).compile();
 
@@ -37,30 +69,30 @@ describe('ReservationsService', () => {
     prisma = module.get<PrismaService>(PrismaService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  describe('create', () => {
+  describe("create", () => {
     const createReservationDto = {
-      userId: '123e4567-e89b-12d3-a456-426614174000',
-      tableId: '123e4567-e89b-12d3-a456-426614174001',
-      startTime: new Date('2024-03-20T19:00:00Z'),
-      endTime: new Date('2024-03-20T20:00:00Z'),
+      userId: "123e4567-e89b-12d3-a456-426614174000",
+      tableId: "123e4567-e89b-12d3-a456-426614174001",
+      startTime: "2024-03-20T19:00:00Z",
+      endTime: "2024-03-20T20:00:00Z",
       partySize: 4,
     };
 
-    it('should create a reservation when table is available', async () => {
+    it("should create a reservation when table is available", async () => {
       mockPrismaService.reservation.findFirst.mockResolvedValue(null);
       mockPrismaService.reservation.create.mockResolvedValue({
         ...createReservationDto,
-        id: '123e4567-e89b-12d3-a456-426614174002',
+        id: "123e4567-e89b-12d3-a456-426614174002",
         status: ReservationStatus.PENDING,
       });
 
       const result = await service.create(createReservationDto);
 
-      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty("id");
       expect(result.status).toBe(ReservationStatus.PENDING);
       expect(mockPrismaService.reservation.create).toHaveBeenCalledWith({
         data: {
@@ -74,41 +106,41 @@ describe('ReservationsService', () => {
       });
     });
 
-    it('should throw ConflictException when table is not available', async () => {
+    it("should throw ConflictException when table is not available", async () => {
       mockPrismaService.reservation.findFirst.mockResolvedValue({
-        id: '123e4567-e89b-12d3-a456-426614174003',
+        id: "123e4567-e89b-12d3-a456-426614174003",
       });
 
       await expect(service.create(createReservationDto)).rejects.toThrow(
-        ConflictException,
+        ConflictException
       );
     });
   });
 
-  describe('getAvailability', () => {
-    const startTime = new Date('2024-03-20T19:00:00Z');
-    const endTime = new Date('2024-03-20T20:00:00Z');
+  describe("getAvailability", () => {
+    const startTime = new Date("2024-03-20T19:00:00Z");
+    const endTime = new Date("2024-03-20T20:00:00Z");
     const partySize = 4;
 
-    it('should return available tables', async () => {
+    it("should return available tables", async () => {
       const mockTables = [
         {
-          id: '123e4567-e89b-12d3-a456-426614174001',
-          name: 'Table 1',
+          id: "123e4567-e89b-12d3-a456-426614174001",
+          name: "Table 1",
           capacity: 4,
-          location: 'Window',
+          location: "Window",
           reservations: [],
         },
         {
-          id: '123e4567-e89b-12d3-a456-426614174002',
-          name: 'Table 2',
+          id: "123e4567-e89b-12d3-a456-426614174002",
+          name: "Table 2",
           capacity: 6,
-          location: 'Center',
+          location: "Center",
           reservations: [
             {
-              id: '123e4567-e89b-12d3-a456-426614174003',
-              startTime: new Date('2024-03-20T19:00:00Z'),
-              endTime: new Date('2024-03-20T20:00:00Z'),
+              id: "123e4567-e89b-12d3-a456-426614174003",
+              startTime: new Date("2024-03-20T19:00:00Z"),
+              endTime: new Date("2024-03-20T20:00:00Z"),
             },
           ],
         },
@@ -116,7 +148,11 @@ describe('ReservationsService', () => {
 
       mockPrismaService.table.findMany.mockResolvedValue(mockTables);
 
-      const result = await service.getAvailability(startTime, endTime, partySize);
+      const result = await service.getAvailability(
+        startTime,
+        endTime,
+        partySize
+      );
 
       expect(result).toHaveLength(2);
       expect(result[0].available).toBe(true);
@@ -124,16 +160,18 @@ describe('ReservationsService', () => {
     });
   });
 
-  describe('cancel', () => {
-    const reservationId = '123e4567-e89b-12d3-a456-426614174000';
+  describe("cancel", () => {
+    const reservationId = "123e4567-e89b-12d3-a456-426614174000";
 
-    it('should cancel a reservation', async () => {
+    it("should cancel a reservation", async () => {
       const mockReservation = {
         id: reservationId,
         status: ReservationStatus.PENDING,
       };
 
-      mockPrismaService.reservation.findUnique.mockResolvedValue(mockReservation);
+      mockPrismaService.reservation.findUnique.mockResolvedValue(
+        mockReservation
+      );
       mockPrismaService.reservation.update.mockResolvedValue({
         ...mockReservation,
         status: ReservationStatus.CANCELLED,
@@ -152,25 +190,27 @@ describe('ReservationsService', () => {
       });
     });
 
-    it('should throw NotFoundException when reservation does not exist', async () => {
+    it("should throw NotFoundException when reservation does not exist", async () => {
       mockPrismaService.reservation.findUnique.mockResolvedValue(null);
 
       await expect(service.cancel(reservationId)).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
 
-    it('should throw ConflictException when reservation is already cancelled', async () => {
+    it("should throw ConflictException when reservation is already cancelled", async () => {
       const mockReservation = {
         id: reservationId,
         status: ReservationStatus.CANCELLED,
       };
 
-      mockPrismaService.reservation.findUnique.mockResolvedValue(mockReservation);
+      mockPrismaService.reservation.findUnique.mockResolvedValue(
+        mockReservation
+      );
 
       await expect(service.cancel(reservationId)).rejects.toThrow(
-        ConflictException,
+        ConflictException
       );
     });
   });
-}); 
+});
