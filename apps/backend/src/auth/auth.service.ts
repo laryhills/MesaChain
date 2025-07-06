@@ -1,16 +1,20 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
-import * as bcrypt from 'bcrypt';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "../prisma/prisma.service";
+import { LoginDto, RegisterDto } from "./dto/auth.dto";
+import * as bcrypt from "bcrypt";
 
-import { UserRole } from '../interfaces/user.interface';
+import { UserRole } from "../interfaces/user.interface";
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
-    private jwtService: JwtService,
+    private jwtService: JwtService
   ) {}
 
   async register(dto: RegisterDto) {
@@ -19,7 +23,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException("Email already exists");
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -27,16 +31,16 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
-        passwordHash: hashedPassword,
+        password: hashedPassword,
         name: dto.name,
-        role: UserRole.USER 
+        role: UserRole.USER,
       },
     });
 
     const tokens = await this.generateTokens(user.id, user.email);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-    delete user.passwordHash;
+    delete user.password;
     return { user, ...tokens };
   }
 
@@ -46,18 +50,18 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     const tokens = await this.generateTokens(user.id, user.email);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-    delete user.passwordHash;
+    delete user.password;
     return { user, ...tokens };
   }
 
@@ -74,11 +78,18 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!refreshToken || refreshToken.revoked || refreshToken.expiresAt < new Date()) {
-      throw new UnauthorizedException('Invalid refresh token');
+    if (
+      !refreshToken ||
+      refreshToken.revoked ||
+      refreshToken.expiresAt < new Date()
+    ) {
+      throw new UnauthorizedException("Invalid refresh token");
     }
 
-    const tokens = await this.generateTokens(refreshToken.user.id, refreshToken.user.email);
+    const tokens = await this.generateTokens(
+      refreshToken.user.id,
+      refreshToken.user.email
+    );
     await this.saveRefreshToken(refreshToken.user.id, tokens.refreshToken);
     await this.prisma.session.update({
       where: { id: refreshToken.id },
@@ -90,14 +101,8 @@ export class AuthService {
 
   private async generateTokens(userId: string, email: string) {
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(
-        { sub: userId, email },
-        { expiresIn: '15m' },
-      ),
-      this.jwtService.signAsync(
-        { sub: userId, email },
-        { expiresIn: '7d' },
-      ),
+      this.jwtService.signAsync({ sub: userId, email }, { expiresIn: "15m" }),
+      this.jwtService.signAsync({ sub: userId, email }, { expiresIn: "7d" }),
     ]);
 
     return { accessToken, refreshToken };
@@ -115,4 +120,4 @@ export class AuthService {
       },
     });
   }
-} 
+}
