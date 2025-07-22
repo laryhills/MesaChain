@@ -7,7 +7,7 @@ async function bootstrap() {
   app.use(json({ limit: '10mb' }));
   // Enable CORS for frontend
   app.enableCors({
-    origin: process.env.API_BASE_URL_FRONTEND || 'http://localhost:3000',
+    origin: process.env.API_BASE_URL_FRONTEND || 'http://localhost:4000',
     credentials: true,
   });
   await app.listen(4000);
