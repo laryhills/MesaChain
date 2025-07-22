@@ -1,6 +1,7 @@
 packages:
-  - apps/*
   - packages/*
+  - MesaChain-FE
+  - MesaChain-BE
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@prisma/client'

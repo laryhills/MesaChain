@@ -2,9 +2,12 @@
   "name": "mesachain-monorepo",
   "version": "1.0.0",
   "description": "MesaChain Frontend and Backend Monorepo",
+  "author": "MesaChain",
+  "license": "MIT",
   "private": true,
   "workspaces": [
-    "apps/*",
+    "MesaChain-FE",
+    "MesaChain-BE",
     "packages/*"
   ],
   "scripts": {
@@ -17,5 +20,10 @@
   "devDependencies": {
     "turbo": "^1.13.0"
   },
-  "packageManager": "pnpm@8.6.0"
-} 
+  "packageManager": "pnpm@8.6.0",
+  "dependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.0.0"
+  }
+}

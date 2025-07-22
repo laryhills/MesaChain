@@ -24,5 +24,5 @@
     "baseUrl": "."
   },
   "exclude": ["node_modules"],
-  "include": ["./apps/**/*", "./packages/**/*"]
+  "include": ["./apps/**/*", "./packages/**/*", "MesaChain-FE/postcss.config.js", "MesaChain-FE/tailwind.config.js", "MesaChain-FE/tsconfig.json", "MesaChain-FE/jest.setup.js", "MesaChain-FE/next.config.js", "MesaChain-FE/store"]
 } 

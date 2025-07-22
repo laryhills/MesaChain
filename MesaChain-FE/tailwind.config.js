@@ -1,8 +1,9 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+// @ts-ignore
+const config = {
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx}',
-    './src/components/**/*.{js,ts,jsx,tsx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './lib/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     container: {
@@ -71,3 +72,5 @@ module.exports = {
   },
   plugins: [],
 };
+
+module.exports = config;
