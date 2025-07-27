@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTableLayoutStore } from '@/store/useTableLayoutStore';
 import { TableStatus } from '@/types/tableLayout';
-import { CAPACITY_OPTIONS } from './tableConfig';
+import { CAPACITY_OPTIONS, TABLE_CONFIGS } from './tableConfig';
 
 export function PropertiesPanel() {
   const { getSelectedTable, updateTable, deleteTable, selectTable } = useTableLayoutStore();
@@ -16,8 +16,8 @@ export function PropertiesPanel() {
   });
 
   const [hasChanges, setHasChanges] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Update form data when selected table changes
   useEffect(() => {
     if (selectedTable) {
       setFormData({
@@ -26,31 +26,69 @@ export function PropertiesPanel() {
         status: selectedTable.status,
       });
       setHasChanges(false);
+      setError(null);
     }
   }, [selectedTable]);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
+    setError(null);
   };
 
   const handleSave = () => {
     if (selectedTable && hasChanges) {
+      if (formData.capacity !== selectedTable.capacity) {
+        const newConfig = TABLE_CONFIGS.find(config => 
+          config.capacity === formData.capacity && config.shape === selectedTable.shape
+        );
+        
+        if (newConfig) {
+          const newPosition = {
+            ...selectedTable.position,
+            w: newConfig.defaultSize.w,
+            h: newConfig.defaultSize.h
+          };
+          
+          const { tables } = useTableLayoutStore.getState();
+          const tempTable = { ...selectedTable, position: newPosition };
+          
+          const checkCollision = (table1: any, table2: any) => {
+            return !(
+              table1.position.x + table1.position.w <= table2.position.x ||
+              table1.position.x >= table2.position.x + table2.position.w ||
+              table1.position.y + table1.position.h <= table2.position.y ||
+              table1.position.y >= table2.position.y + table2.position.h
+            );
+          };
+          
+          const hasCollision = tables.some(table => 
+            table.id !== selectedTable.id && checkCollision(tempTable, table)
+          );
+          
+          if (hasCollision) {
+            setError('Cannot resize table. There are other tables in the way. Move nearby tables first.');
+            return;
+          }
+        }
+      }
+      
       updateTable(selectedTable.id, formData);
       setHasChanges(false);
-      selectTable(null); // Cerrar el modal
+      setError(null);
+      selectTable(null);
     }
   };
 
   const handleCancel = () => {
     if (selectedTable) {
-      // Reset form data to original values
       setFormData({
         name: selectedTable.name,
         capacity: selectedTable.capacity,
         status: selectedTable.status,
       });
       setHasChanges(false);
+      setError(null);
     }
     selectTable(null);
   };
@@ -72,6 +110,12 @@ export function PropertiesPanel() {
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
         Table {selectedTable.name}
       </h3>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>

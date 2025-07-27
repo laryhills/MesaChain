@@ -3,6 +3,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTableLayoutStore } from '@/store/useTableLayoutStore';
 import { TableComponent } from './TableComponent';
+import { TableTemplate } from '@/types/tableLayout';
+import { Utensils } from 'lucide-react';
 
 export function LayoutCanvas() {
   const {
@@ -20,6 +22,22 @@ export function LayoutCanvas() {
   const [draggedTableId, setDraggedTableId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  
+  const [dragTemplate, setDragTemplate] = useState<TableTemplate | null>(null);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const checkCollision = useCallback((pos: { x: number; y: number; w: number; h: number }, excludeId?: string) => {
+    return tables.some(table => {
+      if (excludeId && table.id === excludeId) return false;
+      return !(
+        pos.x + pos.w <= table.position.x ||
+        pos.x >= table.position.x + table.position.w ||
+        pos.y + pos.h <= table.position.y ||
+        pos.y >= table.position.y + table.position.h
+      );
+    });
+  }, [tables]);
 
   const handleDragStart = useCallback((e: React.MouseEvent, tableId: string) => {
     e.preventDefault();
@@ -74,8 +92,44 @@ export function LayoutCanvas() {
     }
   }, [selectTable, isDragging, draggedTableId]);
 
+  const handleDragEnter = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    try {
+      const templateData = event.dataTransfer.getData('application/json');
+      if (templateData) {
+        const template = JSON.parse(templateData);
+        setDragTemplate(template);
+        setIsDragOver(true);
+      }
+    } catch (error) {
+      console.error('Error parsing drag template:', error);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    
+    if (canvasRef.current && dragTemplate) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = Math.max(0, Math.round((event.clientX - rect.left) / gridSize));
+      const y = Math.max(0, Math.round((event.clientY - rect.top) / gridSize));
+      setDragPosition({ x, y });
+    }
+  }, [gridSize, dragTemplate]);
+
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    if (!canvasRef.current?.contains(event.relatedTarget as Node)) {
+      setIsDragOver(false);
+      setDragTemplate(null);
+    }
+  }, []);
+
   const handleDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
+    setIsDragOver(false);
+    setDragTemplate(null);
     
     try {
       const templateData = event.dataTransfer.getData('application/json');
@@ -93,87 +147,100 @@ export function LayoutCanvas() {
     }
   }, [gridSize]);
 
-  const handleDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (draggedTableId) {
-      handleDragMove(e);
-    }
-  }, [draggedTableId, handleDragMove]);
-
-  const handleMouseUp = useCallback(() => {
-    if (draggedTableId) {
-      handleDragEnd();
-    }
-  }, [draggedTableId, handleDragEnd]);
-
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      selectTable(null);
-    }
-  }, [selectTable]);
-
-  const maxX = Math.max(...tables.map(t => t.position.x + t.position.w), 20);
-  const maxY = Math.max(...tables.map(t => t.position.y + t.position.h), 15);
-  const contentWidth = maxX * gridSize + 100;
-  const contentHeight = maxY * gridSize + 100;
+  const isDragPositionValid = dragTemplate && !checkCollision({
+    x: dragPosition.x,
+    y: dragPosition.y,
+    w: dragTemplate.defaultSize.w,
+    h: dragTemplate.defaultSize.h
+  });
 
   return (
-    <div 
+    <div
       ref={canvasRef}
-      className="w-full h-full bg-gray-100 relative overflow-auto"
-      onDrop={handleDrop}
+      className="w-full h-full relative overflow-auto bg-gray-50"
+      onMouseMove={handleDragMove}
+      onMouseUp={handleDragEnd}
       onDragOver={handleDragOver}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onClick={handleCanvasClick}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
-      <div 
-        className="absolute inset-0"
+      {/* Grid Background */}
+      <div
+        className="absolute inset-0 pointer-events-none"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px)
+            linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+            linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
           `,
           backgroundSize: `${gridSize}px ${gridSize}px`,
-          backgroundPosition: '0 0',
+          transform: `scale(${zoom})`,
+          transformOrigin: 'top left'
         }}
       />
-      
-      <div 
-        className="relative"
-        style={{
-          width: `${contentWidth}px`,
-          height: `${contentHeight}px`,
-          transform: `scale(${zoom})`,
-          transformOrigin: 'top left',
-        }}
-      >
-        {tables.map((table) => (
+
+      {/* Existing Tables */}
+      {tables.map((table) => (
+        <div
+          key={table.id}
+          className="absolute"
+          style={{
+            left: table.position.x * gridSize,
+            top: table.position.y * gridSize,
+            width: table.position.w * gridSize,
+            height: table.position.h * gridSize,
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left'
+          }}
+        >
+          <TableComponent
+            table={table}
+            isSelected={selectedTableId === table.id}
+            onClick={() => handleItemClick(table.id)}
+            isDragging={isDragging}
+            onDragStart={(e) => handleDragStart(e, table.id)}
+          />
+        </div>
+      ))}
+
+      {/* Drag Skeleton */}
+      {isDragOver && dragTemplate && (
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: dragPosition.x * gridSize,
+            top: dragPosition.y * gridSize,
+            width: dragTemplate.defaultSize.w * gridSize,
+            height: dragTemplate.defaultSize.h * gridSize,
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left'
+          }}
+        >
           <div
-            key={table.id}
-            className="absolute cursor-move"
-            style={{
-              left: `${table.position.x * gridSize}px`,
-              top: `${table.position.y * gridSize}px`,
-              width: `${table.position.w * gridSize}px`,
-              height: `${table.position.h * gridSize}px`,
-            }}
+            className={`w-full h-full flex flex-col items-center justify-center border-2 border-dashed transition-colors ${
+              isDragPositionValid 
+                ? 'border-green-500 bg-green-50' 
+                : 'border-red-500 bg-red-50'
+            }`}
           >
-            <TableComponent
-              table={table}
-              isSelected={selectedTableId === table.id}
-              onClick={() => handleItemClick(table.id)}
-              isDragging={isDragging}
-              onDragStart={(e) => handleDragStart(e, table.id)}
-            />
+            <div className="text-center">
+              <Utensils className={`w-6 h-6 mx-auto mb-1 ${
+                isDragPositionValid ? 'text-green-600' : 'text-red-600'
+              }`} />
+              <div className={`text-xs font-medium ${
+                isDragPositionValid ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {dragTemplate.name}
+              </div>
+              <div className={`text-xs ${
+                isDragPositionValid ? 'text-green-500' : 'text-red-500'
+              }`}>
+                {isDragPositionValid ? 'Valid Position' : 'Invalid Position'}
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 } 

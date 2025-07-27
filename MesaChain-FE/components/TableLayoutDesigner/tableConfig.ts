@@ -58,10 +58,10 @@ export const getTableScale = (capacity: number, shape: 'square' | 'round') => {
   const tableKey = `${capacity}-seat-${shape}`;
   
   const scaleConfig = {
-    '2-seat-square': { visual: 1.2, counter: 0.73 },
-    '4-seat-square': { visual: 1.1, counter: 0.87 },
-    '4-seat-round': { visual: 1.2, counter: 0.83 },
-    '6-seat-round': { visual: 1.1, counter: 0.91 }
+    '2-seat-square': { visual: 1, counter: 0.71 },
+    '4-seat-square': { visual: 1, counter: 1 },
+    '4-seat-round': { visual: 1, counter: 1 },
+    '6-seat-round': { visual: 1, counter: 1.1 }
   };
   
   return scaleConfig[tableKey as keyof typeof scaleConfig] || { visual: 1.0, counter: 1.0 };

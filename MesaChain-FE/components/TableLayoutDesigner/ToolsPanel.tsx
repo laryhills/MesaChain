@@ -2,16 +2,7 @@
 
 import { useTableLayoutStore } from '@/store/useTableLayoutStore';
 import { TableTemplate } from '@/types/tableLayout';
-import { TABLE_CONFIGS, CAPACITY_OPTIONS, getTableTemplate } from './tableConfig';
-
-const GRID_SIZE_OPTIONS = [
-  { value: 10, label: '10px' },
-  { value: 15, label: '15px' },
-  { value: 20, label: '20px' },
-  { value: 25, label: '25px' },
-  { value: 30, label: '30px' },
-  { value: 40, label: '40px' }
-];
+import { TABLE_CONFIGS, getTableTemplate } from './tableConfig';
 
 const ZOOM_CONFIG = {
   min: 0.3,
@@ -49,7 +40,7 @@ function DraggableTableOption({ config, onDragStart }: DraggableTableOptionProps
 }
 
 export function ToolsPanel() {
-  const { clearLayout, zoom, setZoom, gridSize, setGridSize } = useTableLayoutStore();
+  const { clearLayout, zoom, setZoom } = useTableLayoutStore();
 
   const handleDragStart = (template: TableTemplate, event: React.DragEvent) => {
     console.log('Started dragging template:', template);
@@ -61,10 +52,6 @@ export function ToolsPanel() {
 
   const handleZoomOut = () => {
     setZoom(Math.max(zoom - ZOOM_CONFIG.step, ZOOM_CONFIG.min));
-  };
-
-  const handleGridSizeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setGridSize(Number(event.target.value));
   };
 
   return (
@@ -104,21 +91,6 @@ export function ToolsPanel() {
             </svg>
           </button>
         </div>
-      </div>
-
-      <div className="mb-6">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Grid Size ({gridSize}px)</h4>
-        <select 
-          value={gridSize}
-          onChange={handleGridSizeChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        >
-          {GRID_SIZE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
       </div>
 
       <div className="mb-6">
