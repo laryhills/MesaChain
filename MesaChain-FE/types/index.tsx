@@ -22,5 +22,8 @@ export interface MenuItem {
     paymentMethod?: PaymentMethod;
   }
   
+  // Table Layout Types
+  export * from './tableLayout';
+  
   // utils/
   
