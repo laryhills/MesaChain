@@ -6,8 +6,10 @@ import { TableStatus } from '@/types/tableLayout';
 import { CAPACITY_OPTIONS, TABLE_CONFIGS } from './tableConfig';
 
 export function PropertiesPanel() {
-  const { getSelectedTable, updateTable, deleteTable, selectTable } = useTableLayoutStore();
+  const { getSelectedTable, updateTable, deleteTable, selectTable, makeTableVisible } = useTableLayoutStore();
   const selectedTable = getSelectedTable();
+  
+  const isInvisibleTable = selectedTable && !selectedTable.isVisible;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -80,15 +82,32 @@ export function PropertiesPanel() {
     }
   };
 
+  const handleConfirm = () => {
+    if (isInvisibleTable && selectedTable) {
+      makeTableVisible(selectedTable.id);
+      updateTable(selectedTable.id, formData);
+      selectTable(null);
+    } else if (selectedTable) {
+      updateTable(selectedTable.id, formData);
+      selectTable(null);
+    }
+  };
+
+
+
   const handleCancel = () => {
     if (selectedTable) {
-      setFormData({
-        name: selectedTable.name,
-        capacity: selectedTable.capacity,
-        status: selectedTable.status,
-      });
-      setHasChanges(false);
-      setError(null);
+      if (isInvisibleTable) {
+        deleteTable(selectedTable.id);
+      } else {
+        setFormData({
+          name: selectedTable.name,
+          capacity: selectedTable.capacity,
+          status: selectedTable.status,
+        });
+        setHasChanges(false);
+        setError(null);
+      }
     }
     selectTable(null);
   };
@@ -153,29 +172,48 @@ export function PropertiesPanel() {
       </div>
 
       <div className="mt-6 flex gap-2">
-        <button
-          onClick={handleDelete}
-          className="flex-1 p-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-        >
-          Delete
-        </button>
-        <button
-          onClick={handleCancel}
-          className="flex-1 p-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={!hasChanges}
-          className={`flex-1 p-2 rounded-md transition-colors ${
-            hasChanges 
-              ? 'bg-blue-600 text-white hover:bg-blue-700' 
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          Save
-        </button>
+        {isInvisibleTable ? (
+          <>
+            <button
+              onClick={handleCancel}
+              className="flex-1 p-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              className="flex-1 p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Confirm
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleDelete}
+              className="flex-1 p-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            >
+              Delete
+            </button>
+            <button
+              onClick={handleCancel}
+              className="flex-1 p-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!hasChanges}
+              className={`flex-1 p-2 rounded-md transition-colors ${
+                hasChanges 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Save
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

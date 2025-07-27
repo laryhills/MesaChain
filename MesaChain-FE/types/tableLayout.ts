@@ -15,6 +15,7 @@ export interface Table {
   };
   bookings?: Booking[];
   orders?: Order[];
+  isVisible: boolean;
 }
 
 export interface Booking {

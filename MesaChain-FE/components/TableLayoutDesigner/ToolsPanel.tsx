@@ -2,7 +2,7 @@
 
 import { useTableLayoutStore } from '@/store/useTableLayoutStore';
 import { TableTemplate } from '@/types/tableLayout';
-import { TABLE_CONFIGS, getTableTemplate } from './tableConfig';
+import { GRID_SIZES, TABLE_CONFIGS, getTableTemplate } from './tableConfig';
 
 const ZOOM_CONFIG = {
   min: 0.3,
@@ -13,12 +13,14 @@ const ZOOM_CONFIG = {
 interface DraggableTableOptionProps {
   config: typeof TABLE_CONFIGS[0];
   onDragStart: (template: TableTemplate, event: React.DragEvent) => void;
+  onActivateToolsMode: () => void;
 }
 
-function DraggableTableOption({ config, onDragStart }: DraggableTableOptionProps) {
+function DraggableTableOption({ config, onDragStart, onActivateToolsMode }: DraggableTableOptionProps) {
   const handleDragStart = (event: React.DragEvent) => {
     const template = getTableTemplate(config);
     
+    onActivateToolsMode();
     event.dataTransfer.setData('application/json', JSON.stringify(template));
     event.dataTransfer.effectAllowed = 'copy';
     onDragStart(template, event);
@@ -40,10 +42,10 @@ function DraggableTableOption({ config, onDragStart }: DraggableTableOptionProps
 }
 
 export function ToolsPanel() {
-  const { clearLayout, zoom, setZoom } = useTableLayoutStore();
+  const { clearLayout, zoom, setZoom, gridSize, setGridSize, setToolsPanelMode } = useTableLayoutStore();
 
   const handleDragStart = (template: TableTemplate, event: React.DragEvent) => {
-    console.log('Started dragging template:', template);
+    setToolsPanelMode(true);
   };
 
   const handleZoomIn = () => {
@@ -66,9 +68,23 @@ export function ToolsPanel() {
               key={config.id}
               config={config}
               onDragStart={handleDragStart}
+              onActivateToolsMode={() => setToolsPanelMode(true)}
             />
           ))}
         </div>
+      </div>
+
+      <div className="mb-6">
+        <h4 className="text-sm font-medium text-gray-700 mb-3">Grid Size</h4>
+        <select
+          value={gridSize}
+          onChange={(e) => setGridSize(Number(e.target.value))}
+          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          {GRID_SIZES.map((size) => (
+            <option key={size} value={size}>{size}px</option>
+          ))}
+        </select>
       </div>
 
       <div className="mb-6">

@@ -1,22 +1,26 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTableLayoutStore } from '@/store/useTableLayoutStore';
 import { TableComponent } from './TableComponent';
 import { TableTemplate } from '@/types/tableLayout';
 import { Utensils } from 'lucide-react';
+import { useTableLayoutActions } from './useTableLayoutActions';
 
 export function LayoutCanvas() {
   const {
     tables,
     selectedTableId,
-    selectTable,
-    updateTable,
-    setDragging,
-    setResizing,
     zoom,
-    gridSize
+    gridSize,
   } = useTableLayoutStore();
+
+  const {
+    handleDrop,
+    handleTableDragMove,
+    handleTableDragEnd,
+    handleTableClick
+  } = useTableLayoutActions();
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const [draggedTableId, setDraggedTableId] = useState<string | null>(null);
@@ -26,6 +30,7 @@ export function LayoutCanvas() {
   const [dragTemplate, setDragTemplate] = useState<TableTemplate | null>(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
+  const [_, setMousePosition] = useState({ x: 0, y: 0 });
 
   const checkCollision = useCallback((pos: { x: number; y: number; w: number; h: number }, excludeId?: string) => {
     return tables.some(table => {
@@ -42,7 +47,6 @@ export function LayoutCanvas() {
   const handleDragStart = useCallback((e: React.MouseEvent, tableId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragging(true);
     setIsDragging(true);
     setDraggedTableId(tableId);
     
@@ -65,58 +69,61 @@ export function LayoutCanvas() {
     const x = Math.max(0, Math.round(rawX));
     const y = Math.max(0, Math.round(rawY));
     
-    updateTable(draggedTableId, {
-      position: {
-        ...tables.find(t => t.id === draggedTableId)!.position,
-        x,
-        y
-      }
-    });
-  }, [draggedTableId, dragOffset, gridSize, updateTable, tables]);
+    const table = tables.find(t => t.id === draggedTableId);
+    if (table) {
+      handleTableDragMove(e, draggedTableId, dragOffset, gridSize, canvasRef, tables);
+    }
+  }, [draggedTableId, dragOffset, gridSize, tables, handleTableDragMove]);
 
   const handleDragEnd = useCallback(() => {
-    setDragging(false);
     setIsDragging(false);
     setDraggedTableId(null);
     setDragOffset({ x: 0, y: 0 });
-    
-    setTimeout(() => {
-      setDragging(false);
-      setIsDragging(false);
-    }, 100);
-  }, []);
+    handleTableDragEnd();
+  }, [handleTableDragEnd]);
 
   const handleItemClick = useCallback((tableId: string) => {
     if (!isDragging && !draggedTableId) {
-      selectTable(tableId);
+      handleTableClick(tableId, isDragging);
     }
-  }, [selectTable, isDragging, draggedTableId]);
+  }, [handleTableClick, isDragging, draggedTableId]);
+
+
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    
+    try {
+      const templateData = event.dataTransfer.getData('application/json');
+      if (templateData && canvasRef.current) {
+        const template = JSON.parse(templateData);
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = Math.max(0, Math.round((event.clientX - rect.left) / gridSize));
+        const y = Math.max(0, Math.round((event.clientY - rect.top) / gridSize));
+        setDragPosition({ x, y });
+        setMousePosition({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+        
+        if (!dragTemplate) {
+          setDragTemplate(template);
+        }
+      }
+    } catch (error) {
+      
+    }
+  }, [gridSize, dragTemplate]);
 
   const handleDragEnter = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     try {
       const templateData = event.dataTransfer.getData('application/json');
       if (templateData) {
-        const template = JSON.parse(templateData);
-        setDragTemplate(template);
         setIsDragOver(true);
       }
     } catch (error) {
-      console.error('Error parsing drag template:', error);
+      
     }
   }, []);
-
-  const handleDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-    
-    if (canvasRef.current && dragTemplate) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = Math.max(0, Math.round((event.clientX - rect.left) / gridSize));
-      const y = Math.max(0, Math.round((event.clientY - rect.top) / gridSize));
-      setDragPosition({ x, y });
-    }
-  }, [gridSize, dragTemplate]);
 
   const handleDragLeave = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -126,26 +133,7 @@ export function LayoutCanvas() {
     }
   }, []);
 
-  const handleDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    setIsDragOver(false);
-    setDragTemplate(null);
-    
-    try {
-      const templateData = event.dataTransfer.getData('application/json');
-      if (templateData && canvasRef.current) {
-        const template = JSON.parse(templateData);
-        const rect = canvasRef.current.getBoundingClientRect();
-        const x = Math.max(0, Math.round((event.clientX - rect.left) / gridSize));
-        const y = Math.max(0, Math.round((event.clientY - rect.top) / gridSize));
-        
-        const { addTable } = useTableLayoutStore.getState();
-        addTable(template, { x, y });
-      }
-    } catch (error) {
-      console.error('Error handling drop:', error);
-    }
-  }, [gridSize]);
+
 
   const isDragPositionValid = dragTemplate && !checkCollision({
     x: dragPosition.x,
@@ -153,6 +141,8 @@ export function LayoutCanvas() {
     w: dragTemplate.defaultSize.w,
     h: dragTemplate.defaultSize.h
   });
+
+
 
   return (
     <div
@@ -163,9 +153,12 @@ export function LayoutCanvas() {
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+                    onDrop={(event) => {
+                handleDrop(event, gridSize, canvasRef);
+                setIsDragOver(false);
+                setDragTemplate(null);
+              }}
     >
-      {/* Grid Background */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -179,7 +172,6 @@ export function LayoutCanvas() {
         }}
       />
 
-      {/* Existing Tables */}
       {tables.map((table) => (
         <div
           key={table.id}
@@ -203,7 +195,6 @@ export function LayoutCanvas() {
         </div>
       ))}
 
-      {/* Drag Skeleton */}
       {isDragOver && dragTemplate && (
         <div
           className="absolute pointer-events-none"
@@ -237,10 +228,19 @@ export function LayoutCanvas() {
               }`}>
                 {isDragPositionValid ? 'Valid Position' : 'Invalid Position'}
               </div>
+              <div className="text-xs text-blue-600 font-medium mt-1">
+                Grid: {dragPosition.x}, {dragPosition.y}
+              </div>
             </div>
           </div>
         </div>
       )}
+      
+
+
+
+
+
     </div>
   );
 } 

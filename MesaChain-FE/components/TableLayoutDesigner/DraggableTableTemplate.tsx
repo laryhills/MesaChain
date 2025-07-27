@@ -6,20 +6,20 @@ import { TableTemplate } from '@/types/tableLayout';
 interface DraggableTableTemplateProps {
   template: TableTemplate;
   onDragStart: (template: TableTemplate, event: React.DragEvent) => void;
+  onActivateToolsMode: () => void;
 }
 
-export function DraggableTableTemplate({ template, onDragStart }: DraggableTableTemplateProps) {
+export function DraggableTableTemplate({ template, onDragStart, onActivateToolsMode }: DraggableTableTemplateProps) {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<HTMLDivElement>(null);
 
   const handleDragStart = (event: React.DragEvent) => {
     setIsDragging(true);
+    onActivateToolsMode();
     
-    // Set drag data
     event.dataTransfer.setData('application/json', JSON.stringify(template));
     event.dataTransfer.effectAllowed = 'copy';
     
-    // Set drag image
     if (dragRef.current) {
       event.dataTransfer.setDragImage(dragRef.current, 20, 20);
     }
@@ -55,7 +55,6 @@ export function DraggableTableTemplate({ template, onDragStart }: DraggableTable
         {template.capacity} seats
       </div>
       
-      {/* Drag indicator */}
       <div className="mt-2 flex items-center text-xs text-gray-500">
         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />

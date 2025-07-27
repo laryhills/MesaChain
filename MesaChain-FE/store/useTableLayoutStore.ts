@@ -4,10 +4,8 @@ import { TABLE_CONFIGS } from '@/components/TableLayoutDesigner/tableConfig';
 
 const STORAGE_KEY = 'mesachain-table-layout';
 
-// Mock initial tables - ahora vacío para primera vez
 const initialTables: Table[] = [];
 
-// Función para obtener el tamaño por defecto según capacidad y forma
 const getDefaultSize = (capacity: number, shape: 'square' | 'round') => {
   const config = TABLE_CONFIGS.find(
     c => c.capacity === capacity && c.shape === shape
@@ -15,12 +13,10 @@ const getDefaultSize = (capacity: number, shape: 'square' | 'round') => {
   return config?.defaultSize || { w: 2, h: 2 };
 };
 
-// Función para cargar datos del localStorage
 const loadFromStorage = (): LayoutState => {
-  // Verificar si estamos en el navegador
   if (typeof window === 'undefined') {
     return {
-      tables: initialTables, // Array vacío
+      tables: initialTables,
       selectedTableId: null,
       isDragging: false,
       isResizing: false,
@@ -35,7 +31,10 @@ const loadFromStorage = (): LayoutState => {
       const parsed = JSON.parse(stored);
       console.log('Loaded from storage:', parsed);
       return {
-        tables: parsed.tables || [],
+        tables: (parsed.tables || []).map((table: any) => ({
+          ...table,
+          isVisible: table.isVisible !== undefined ? table.isVisible : true
+        })),
         selectedTableId: null,
         isDragging: false,
         isResizing: false,
@@ -47,9 +46,8 @@ const loadFromStorage = (): LayoutState => {
     console.error('Error loading layout from storage:', error);
   }
   
-  // Retornar estado inicial vacío si no hay datos guardados
   return {
-    tables: initialTables, // Array vacío
+    tables: initialTables,
     selectedTableId: null,
     isDragging: false,
     isResizing: false,
@@ -58,9 +56,7 @@ const loadFromStorage = (): LayoutState => {
   };
 };
 
-// Función para guardar datos en localStorage
 const saveToStorage = (state: LayoutState) => {
-  // Verificar si estamos en el navegador
   if (typeof window === 'undefined') {
     return;
   }
@@ -78,7 +74,6 @@ const saveToStorage = (state: LayoutState) => {
   }
 };
 
-// Función para detectar colisiones entre dos mesas
 const checkCollision = (table1: { position: { x: number; y: number; w: number; h: number } }, 
                        table2: { position: { x: number; y: number; w: number; h: number } }): boolean => {
   return !(
@@ -89,7 +84,6 @@ const checkCollision = (table1: { position: { x: number; y: number; w: number; h
   );
 };
 
-// Función para verificar si una posición es válida (sin colisiones)
 const isValidPosition = (newTable: { position: { x: number; y: number; w: number; h: number } } | { x: number; y: number; w: number; h: number }, 
                         existingTables: Table[], 
                         excludeTableId?: string): boolean => {
@@ -101,29 +95,26 @@ const isValidPosition = (newTable: { position: { x: number; y: number; w: number
   });
 };
 
-// Función para encontrar una posición válida cercana
 const findValidPosition = (desiredPosition: { x: number; y: number; w: number; h: number }, 
                           existingTables: Table[], 
                           excludeTableId?: string): { x: number; y: number } => {
-  const gridSize = 20; // Tamaño de la cuadrícula
-  const maxAttempts = 100; // Aumentado para más opciones
+  const gridSize = 20;
+  const maxAttempts = 100;
   
-  // Primero intentar la posición original
   if (isValidPosition(desiredPosition, existingTables, excludeTableId)) {
     return { x: desiredPosition.x, y: desiredPosition.y };
   }
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Intentar posiciones en espiral alrededor de la posición deseada
     const radius = Math.floor(attempt / 4) + 1;
     const direction = attempt % 4;
     
     let offsetX = 0, offsetY = 0;
     switch (direction) {
-      case 0: offsetX = radius * gridSize; offsetY = 0; break; // Derecha
-      case 1: offsetX = 0; offsetY = radius * gridSize; break; // Abajo
-      case 2: offsetX = -radius * gridSize; offsetY = 0; break; // Izquierda
-      case 3: offsetX = 0; offsetY = -radius * gridSize; break; // Arriba
+      case 0: offsetX = radius * gridSize; offsetY = 0; break;
+      case 1: offsetX = 0; offsetY = radius * gridSize; break;
+      case 2: offsetX = -radius * gridSize; offsetY = 0; break;
+      case 3: offsetX = 0; offsetY = -radius * gridSize; break;
     }
     
     const testPosition = {
@@ -138,13 +129,12 @@ const findValidPosition = (desiredPosition: { x: number; y: number; w: number; h
     }
   }
   
-  // Si no se encuentra posición válida, retornar la posición original
   return { x: desiredPosition.x, y: desiredPosition.y };
 };
 
 interface TableLayoutStore extends LayoutState {
-  // Actions
-  addTable: (template: TableTemplate, position: { x: number; y: number }) => void;
+  addTable: (template: TableTemplate, position: { x: number; y: number }, isVisible?: boolean) => void;
+  makeTableVisible: (tableId: string) => void;
   updateTable: (tableId: string, updates: Partial<Table>) => void;
   deleteTable: (tableId: string) => void;
   selectTable: (tableId: string | null) => void;
@@ -156,27 +146,23 @@ interface TableLayoutStore extends LayoutState {
   saveLayout: () => Promise<void>;
   loadLayout: () => Promise<void>;
   initializeFromStorage: () => void;
-  
-  // Getters
+  isFromToolsPanel: boolean;
+  setToolsPanelMode: (isFromToolsPanel: boolean) => void;
   getSelectedTable: () => Table | null;
-  
-  // Loading state
   isLoading: boolean;
   setLoading: (loading: boolean) => void;
 }
 
 export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
-  // Initial state
   tables: initialTables,
   selectedTableId: null,
   isDragging: false,
   isResizing: false,
   zoom: 1,
   gridSize: 20,
-  isLoading: true, // Comenzar con loading activo
-
-  // Actions
-  addTable: (template, position) => {
+  isLoading: true,
+  isFromToolsPanel: false,
+  addTable: (template, position, isVisible = true) => {
     const state = get();
     const newTable: Table = {
       id: `table-${Date.now()}`,
@@ -191,13 +177,12 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
         h: template.defaultSize.h
       },
       bookings: [],
-      orders: []
+      orders: [],
+      isVisible
     };
 
-    // Verificar si la posición es válida (sin colisiones)
     if (!isValidPosition(newTable, state.tables)) {
       console.warn('Position overlaps with existing table, finding valid position...');
-      // Encontrar una posición válida cercana
       const validPosition = findValidPosition(newTable.position, state.tables);
       newTable.position.x = validPosition.x;
       newTable.position.y = validPosition.y;
@@ -209,7 +194,19 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
         tables: [...state.tables, newTable],
         selectedTableId: newTable.id
       };
-      // Auto-save después de agregar mesa
+      saveToStorage(newState);
+      return newState;
+    });
+  },
+
+  makeTableVisible: (tableId: string) => {
+    set((state) => {
+      const newState = {
+        ...state,
+        tables: state.tables.map((table) => 
+          table.id === tableId ? { ...table, isVisible: true } : table
+        )
+      };
       saveToStorage(newState);
       return newState;
     });
@@ -223,7 +220,6 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
           if (table.id === tableId) {
             const updatedTable = { ...table, ...updates };
             
-            // Si cambió la capacidad, actualizar también el tamaño
             if (updates.capacity !== undefined && updates.capacity !== table.capacity) {
               const newSize = getDefaultSize(updates.capacity, updatedTable.shape);
               const newPosition = {
@@ -232,31 +228,28 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
                 h: newSize.h
               };
               
-              // Verificar si el nuevo tamaño causa colisiones
               const tempTable = { ...updatedTable, position: newPosition };
               if (!isValidPosition(tempTable, state.tables, tableId)) {
                 console.warn('Cannot resize table: new size would overlap with existing table');
-                return table; // Mantener la mesa original si hay colisión
+                return table;
               } else {
                 updatedTable.position = newPosition;
               }
             }
 
-            // Si cambió la posición, verificar colisiones
             if (updates.position) {
               const tempTable = { ...updatedTable, position: updates.position };
               if (!isValidPosition(tempTable, state.tables, tableId)) {
                 console.warn('Cannot move table: position overlaps with existing table');
-                return table; // Mantener la posición original si hay colisión
+                  return table;
               }
-            }
+            } 
             
             return updatedTable;
           }
           return table;
         })
       };
-      // Auto-save después de actualizar mesa
       saveToStorage(newState);
       return newState;
     });
@@ -269,7 +262,6 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
         tables: state.tables.filter((table) => table.id !== tableId),
         selectedTableId: state.selectedTableId === tableId ? null : state.selectedTableId
       };
-      // Auto-save después de eliminar mesa
       saveToStorage(newState);
       return newState;
     });
@@ -290,7 +282,6 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
   setZoom: (zoom) => {
     set((state) => {
       const newState = { ...state, zoom };
-      // Auto-save después de cambiar zoom
       saveToStorage(newState);
       return newState;
     });
@@ -299,7 +290,6 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
   setGridSize: (gridSize) => {
     set((state) => {
       const newState = { ...state, gridSize };
-      // Auto-save después de cambiar grid size
       saveToStorage(newState);
       return newState;
     });
@@ -308,7 +298,6 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
   clearLayout: () => {
     set((state) => {
       const newState = { ...state, tables: [], selectedTableId: null };
-      // Auto-save después de limpiar layout
       saveToStorage(newState);
       return newState;
     });
@@ -328,9 +317,6 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
 
   initializeFromStorage: () => {
     const { setLoading } = get();
-    // No necesitamos setLoading(true) porque ya comienza en true
-    
-    // Simular un pequeño delay para que se vea el loader
     setTimeout(() => {
       const loadedState = loadFromStorage();
       set({ ...loadedState, isLoading: false });
@@ -338,14 +324,16 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
     }, 500);
   },
 
-  // Getters
   getSelectedTable: () => {
     const state = get();
     return state.tables.find(table => table.id === state.selectedTableId) || null;
   },
   
-  // Loading state
   setLoading: (loading) => {
     set({ isLoading: loading });
+  },
+
+  setToolsPanelMode: (isFromToolsPanel) => {
+    set({ isFromToolsPanel });
   }
 })); 

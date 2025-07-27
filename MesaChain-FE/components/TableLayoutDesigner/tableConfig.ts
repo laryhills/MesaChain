@@ -10,6 +10,8 @@ export interface TableConfig {
   counterScale: number;
 }
 
+export const GRID_SIZES = [10, 15, 20, 25, 30, 35, 40, 45, 50] as const;
+   
 export const TABLE_CONFIGS: TableConfig[] = [
   {
     id: '2-seat-square',

@@ -44,6 +44,9 @@ const getStatusText = (status: TableStatus) => {
 };
 
 export function TableComponent({ table, isSelected, onClick, isDragging = false, onDragStart }: TableComponentProps) {
+  if (!table.isVisible) {
+    return null;
+  }
   const [showTooltip, setShowTooltip] = useState(false);
   const [hasMoved, setHasMoved] = useState(false);
   const [dragStarted, setDragStarted] = useState(false);

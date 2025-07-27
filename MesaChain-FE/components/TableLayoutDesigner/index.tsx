@@ -20,27 +20,22 @@ export function TableLayoutDesigner() {
 
   return (
     <div className="flex h-[calc(100vh-100px)] bg-white rounded-lg shadow-lg overflow-hidden">
-      {/* Tools Panel */}
       <div className="w-64 bg-gray-50 border-r border-gray-200 flex-shrink-0">
         <ToolsPanel />
       </div>
       
-      {/* Main Canvas Area - Full width */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header - Fixed height */}
         <div className="h-16 bg-gray-800 flex items-center justify-between px-6 flex-shrink-0">
           <h2 className="text-lg font-semibold text-white">
             Table Layout Designer
           </h2>
         </div>
         
-        {/* Canvas - Scrollable area */}
         <div className="flex-1 relative overflow-hidden">
           <LayoutCanvas />
         </div>
       </div>
       
-      {/* Properties Panel - Hidden by default, shown as modal */}
       {selectedTableId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-96 max-w-md">
