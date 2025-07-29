@@ -1,41 +1,35 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { useTableLayoutStore } from '@/store/useTableLayoutStore';
 import { TableTemplate } from '@/types/tableLayout';
 
 export function useTableLayoutActions() {
   const { addTable, updateTable, deleteTable, selectTable, setDragging, setResizing, isFromToolsPanel, setToolsPanelMode } = useTableLayoutStore();
-  
-  const [pendingDrop, setPendingDrop] = useState<{
-    template: TableTemplate;
-    position: { x: number; y: number };
-    type: 'new-table' | 'existing-table';
-  } | null>(null);
 
   const handleDrop = useCallback((event: React.DragEvent, gridSize: number, canvasRef: React.RefObject<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
     
-    const templateData = event.dataTransfer.getData('application/json');
-    if (templateData && canvasRef.current) {
-      const template = JSON.parse(templateData);
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = Math.max(0, Math.round((event.clientX - rect.left) / gridSize));
-      const y = Math.max(0, Math.round((event.clientY - rect.top) / gridSize));
-      
-      if (isFromToolsPanel) {
-        addTable(template, { x, y }, false);
-        const { tables } = useTableLayoutStore.getState();
-        const newTable = tables[tables.length - 1];
-        selectTable(newTable.id);
-      } else {
-        addTable(template, { x, y }, true);
+    try {
+      const templateData = event.dataTransfer.getData('application/json');
+      if (templateData && canvasRef.current) {
+        const template = JSON.parse(templateData);
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = Math.max(0, Math.round((event.clientX - rect.left) / gridSize));
+        const y = Math.max(0, Math.round((event.clientY - rect.top) / gridSize));
+        
+        if (isFromToolsPanel) {
+          const newTableId = addTable(template, { x, y }, false);
+          selectTable(newTableId);
+        } else {
+          addTable(template, { x, y }, true);
+        }
       }
+    } catch (error) {
+      console.error('Failed to parse drop data:', error);
     }
   }, [isFromToolsPanel, addTable, selectTable]);
 
-
-
-  const handleTableDrop = useCallback((event: React.DragEvent, tableId: string, gridSize: number, canvasRef: React.RefObject<HTMLDivElement>) => {
+  const handleTableDrop = useCallback((event: React.DragEvent, tableId: string, gridSize: number, canvasRef: React.RefObject<HTMLDivElement>, tables: any[]) => {
     event.preventDefault();
     event.stopPropagation();
     
@@ -44,7 +38,6 @@ export function useTableLayoutActions() {
       const x = Math.max(0, Math.round((event.clientX - rect.left) / gridSize));
       const y = Math.max(0, Math.round((event.clientY - rect.top) / gridSize));
       
-      const { tables } = useTableLayoutStore.getState();
       const table = tables.find(t => t.id === tableId);
       if (table) {
         updateTable(tableId, { 
@@ -107,28 +100,8 @@ export function useTableLayoutActions() {
     updateTable(tableId, updates);
   }, [updateTable]);
 
-  const handleConfirmDrop = useCallback(() => {
-    if (pendingDrop) {
-      addTable(pendingDrop.template, pendingDrop.position);
-      setPendingDrop(null);
-      setToolsPanelMode(false);
-    }
-  }, [pendingDrop, addTable, setToolsPanelMode]);
-
-  const handleCancelDrop = useCallback(() => {
-    setPendingDrop(null);
-    setToolsPanelMode(false);
-  }, [setToolsPanelMode]);
-
-
-
-
-
   return {
-    pendingDrop,
     handleDrop,
-    handleConfirmDrop,
-    handleCancelDrop,
     handleTableDrop,
     handleTableDragStart,
     handleTableDragMove,
@@ -136,6 +109,5 @@ export function useTableLayoutActions() {
     handleTableClick,
     handleTableDeleteFromProperties,
     handleTableUpdate,
-    setPendingDrop
   };
 } 

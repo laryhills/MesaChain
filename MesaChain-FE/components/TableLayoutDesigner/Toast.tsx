@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+const ANIMATION_DURATION = 300;
+
 interface ToastProps {
   message: string;
   type: 'success' | 'error' | 'info';
@@ -15,7 +17,7 @@ export function Toast({ message, type, duration = 3000, onClose }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onClose, 300);
+      setTimeout(onClose, ANIMATION_DURATION);
     }, duration);
 
     return () => clearTimeout(timer);
@@ -59,7 +61,7 @@ export function Toast({ message, type, duration = 3000, onClose }: ToastProps) {
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
+      className={`fixed top-4 right-4 z-50 transition-all duration-[${ANIMATION_DURATION}ms] ${
         isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
       }`}
     >
@@ -71,7 +73,7 @@ export function Toast({ message, type, duration = 3000, onClose }: ToastProps) {
         <button
           onClick={() => {
             setIsVisible(false);
-            setTimeout(onClose, 300);
+            setTimeout(onClose, ANIMATION_DURATION);
           }}
           className="ml-4 text-white hover:text-gray-200 transition-colors"
         >

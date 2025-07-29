@@ -30,7 +30,6 @@ export function LayoutCanvas() {
   const [dragTemplate, setDragTemplate] = useState<TableTemplate | null>(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
-  const [_, setMousePosition] = useState({ x: 0, y: 0 });
 
   const checkCollision = useCallback((pos: { x: number; y: number; w: number; h: number }, excludeId?: string) => {
     return tables.some(table => {
@@ -102,14 +101,13 @@ export function LayoutCanvas() {
         const x = Math.max(0, Math.round((event.clientX - rect.left) / gridSize));
         const y = Math.max(0, Math.round((event.clientY - rect.top) / gridSize));
         setDragPosition({ x, y });
-        setMousePosition({ x: event.clientX - rect.left, y: event.clientY - rect.top });
         
         if (!dragTemplate) {
           setDragTemplate(template);
         }
       }
     } catch (error) {
-      
+      console.error('Failed to parse drag data:', error);
     }
   }, [gridSize, dragTemplate]);
 
@@ -121,7 +119,7 @@ export function LayoutCanvas() {
         setIsDragOver(true);
       }
     } catch (error) {
-      
+      console.error('Failed to parse drag data:', error);
     }
   }, []);
 

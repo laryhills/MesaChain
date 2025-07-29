@@ -28,8 +28,8 @@ const loadFromStorage = (): LayoutState => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
-      console.log('Loaded from storage:', parsed);
+          const parsed = JSON.parse(stored);
+    // Use proper logging solution or remove for production
       return {
         tables: (parsed.tables || []).map((table: any) => ({
           ...table,
@@ -68,7 +68,7 @@ const saveToStorage = (state: LayoutState) => {
       gridSize: state.gridSize,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-    console.log('Saved to storage:', dataToSave);
+    // Use proper logging solution or remove for production
   } catch (error) {
     console.error('Error saving layout to storage:', error);
   }
@@ -97,8 +97,8 @@ const isValidPosition = (newTable: { position: { x: number; y: number; w: number
 
 const findValidPosition = (desiredPosition: { x: number; y: number; w: number; h: number }, 
                           existingTables: Table[], 
-                          excludeTableId?: string): { x: number; y: number } => {
-  const gridSize = 20;
+                          excludeTableId?: string,
+                          gridSize: number = 20): { x: number; y: number } => {
   const maxAttempts = 100;
   
   if (isValidPosition(desiredPosition, existingTables, excludeTableId)) {
@@ -111,10 +111,10 @@ const findValidPosition = (desiredPosition: { x: number; y: number; w: number; h
     
     let offsetX = 0, offsetY = 0;
     switch (direction) {
-      case 0: offsetX = radius * gridSize; offsetY = 0; break;
-      case 1: offsetX = 0; offsetY = radius * gridSize; break;
-      case 2: offsetX = -radius * gridSize; offsetY = 0; break;
-      case 3: offsetX = 0; offsetY = -radius * gridSize; break;
+      case 0: offsetX = radius; offsetY = 0; break;
+      case 1: offsetX = 0; offsetY = radius; break;
+      case 2: offsetX = -radius; offsetY = 0; break;
+      case 3: offsetX = 0; offsetY = -radius; break;
     }
     
     const testPosition = {
@@ -133,7 +133,7 @@ const findValidPosition = (desiredPosition: { x: number; y: number; w: number; h
 };
 
 interface TableLayoutStore extends LayoutState {
-  addTable: (template: TableTemplate, position: { x: number; y: number }, isVisible?: boolean) => void;
+  addTable: (template: TableTemplate, position: { x: number; y: number }, isVisible?: boolean) => string;
   makeTableVisible: (tableId: string) => void;
   updateTable: (tableId: string, updates: Partial<Table>) => void;
   deleteTable: (tableId: string) => void;
@@ -143,8 +143,8 @@ interface TableLayoutStore extends LayoutState {
   setZoom: (zoom: number) => void;
   setGridSize: (gridSize: number) => void;
   clearLayout: () => void;
-  saveLayout: () => Promise<void>;
-  loadLayout: () => Promise<void>;
+  saveLayout: () => void;
+  loadLayout: () => void;
   initializeFromStorage: () => void;
   isFromToolsPanel: boolean;
   setToolsPanelMode: (isFromToolsPanel: boolean) => void;
@@ -164,8 +164,9 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
   isFromToolsPanel: false,
   addTable: (template, position, isVisible = true) => {
     const state = get();
+    const uniqueId = `table-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newTable: Table = {
-      id: `table-${Date.now()}`,
+      id: uniqueId,
       name: `T-${state.tables.length + 1}`,
       capacity: template.capacity,
       shape: template.shape,
@@ -182,8 +183,7 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
     };
 
     if (!isValidPosition(newTable, state.tables)) {
-      console.warn('Position overlaps with existing table, finding valid position...');
-      const validPosition = findValidPosition(newTable.position, state.tables);
+      const validPosition = findValidPosition(newTable.position, state.tables, undefined, state.gridSize);
       newTable.position.x = validPosition.x;
       newTable.position.y = validPosition.y;
     }
@@ -197,6 +197,8 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
       saveToStorage(newState);
       return newState;
     });
+
+    return uniqueId;
   },
 
   makeTableVisible: (tableId: string) => {
@@ -229,20 +231,20 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
               };
               
               const tempTable = { ...updatedTable, position: newPosition };
-              if (!isValidPosition(tempTable, state.tables, tableId)) {
-                console.warn('Cannot resize table: new size would overlap with existing table');
-                return table;
-              } else {
+                          if (!isValidPosition(tempTable, state.tables, tableId)) {
+              // Return false or throw an error to indicate failure
+              return table;
+            } else {
                 updatedTable.position = newPosition;
               }
             }
 
             if (updates.position) {
               const tempTable = { ...updatedTable, position: updates.position };
-              if (!isValidPosition(tempTable, state.tables, tableId)) {
-                console.warn('Cannot move table: position overlaps with existing table');
-                  return table;
-              }
+                          if (!isValidPosition(tempTable, state.tables, tableId)) {
+              // Return false or throw an error to indicate failure
+              return table;
+            }
             } 
             
             return updatedTable;
@@ -303,16 +305,14 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
     });
   },
 
-  saveLayout: async () => {
+  saveLayout: () => {
     const state = get();
     saveToStorage(state);
-    console.log('Layout saved successfully');
   },
 
-  loadLayout: async () => {
+  loadLayout: () => {
     const loadedState = loadFromStorage();
     set(loadedState);
-    console.log('Layout loaded successfully');
   },
 
   initializeFromStorage: () => {
@@ -320,7 +320,6 @@ export const useTableLayoutStore = create<TableLayoutStore>((set, get) => ({
     setTimeout(() => {
       const loadedState = loadFromStorage();
       set({ ...loadedState, isLoading: false });
-      console.log('Initialized from storage');
     }, 500);
   },
 

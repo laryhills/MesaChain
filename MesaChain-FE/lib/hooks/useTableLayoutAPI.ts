@@ -1,26 +1,16 @@
 import { useState } from 'react';
 import { TableLayout, Table } from '@/types/tableLayout';
 
-// Mock API functions - replace with actual API calls
 const mockAPI = {
   saveLayout: async (layout: TableLayout): Promise<void> => {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Saving layout to API:', layout);
+    // Use proper logging solution or remove for production
     // TODO: Replace with actual API call
-    // return fetch('/api/table-layouts', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(layout)
-    // });
   },
 
   loadLayout: async (layoutId: string): Promise<TableLayout> => {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Loading layout from API:', layoutId);
     
-    // Mock response
     return {
       id: layoutId,
       name: 'Restaurant Layout',
@@ -33,7 +23,8 @@ const mockAPI = {
           status: 'available',
           position: { x: 0, y: 0, w: 2, h: 2 },
           bookings: [],
-          orders: []
+          orders: [],
+          isVisible: true
         }
       ],
       createdAt: new Date().toISOString(),
@@ -42,11 +33,8 @@ const mockAPI = {
   },
 
   getTableBookings: async (tableId: string): Promise<any[]> => {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log('Loading bookings for table:', tableId);
     
-    // Mock bookings data
     return [
       {
         id: 'booking-1',
@@ -61,11 +49,8 @@ const mockAPI = {
   },
 
   getTableOrders: async (tableId: string): Promise<any[]> => {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log('Loading orders for table:', tableId);
     
-    // Mock orders data
     return [
       {
         id: 'order-1',
@@ -82,9 +67,7 @@ const mockAPI = {
   },
 
   updateTableStatus: async (tableId: string, status: string): Promise<void> => {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    console.log('Updating table status:', tableId, status);
     // TODO: Replace with actual API call
   }
 };
@@ -113,8 +96,7 @@ export function useTableLayoutAPI() {
     setError(null);
     
     try {
-      const layout = await mockAPI.loadLayout(layoutId);
-      return layout;
+      return await mockAPI.loadLayout(layoutId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load layout');
       return null;
@@ -124,40 +106,51 @@ export function useTableLayoutAPI() {
   };
 
   const getTableBookings = async (tableId: string): Promise<any[]> => {
+    setIsLoading(true);
     try {
       return await mockAPI.getTableBookings(tableId);
     } catch (err) {
-      console.error('Failed to load table bookings:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load table bookings');
       return [];
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const getTableOrders = async (tableId: string): Promise<any[]> => {
+    setIsLoading(true);
     try {
       return await mockAPI.getTableOrders(tableId);
     } catch (err) {
-      console.error('Failed to load table orders:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load table orders');
       return [];
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const updateTableStatus = async (tableId: string, status: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
       await mockAPI.updateTableStatus(tableId, status);
       return true;
     } catch (err) {
-      console.error('Failed to update table status:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update table status');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return {
-    isLoading,
-    error,
     saveLayout,
     loadLayout,
     getTableBookings,
     getTableOrders,
-    updateTableStatus
+    updateTableStatus,
+    isLoading,
+    error
   };
 } 

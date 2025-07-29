@@ -57,16 +57,10 @@ export const CAPACITY_OPTIONS = {
 } as const;
 
 export const getTableScale = (capacity: number, shape: 'square' | 'round') => {
-  const tableKey = `${capacity}-seat-${shape}`;
-  
-  const scaleConfig = {
-    '2-seat-square': { visual: 1, counter: 0.71 },
-    '4-seat-square': { visual: 1, counter: 1 },
-    '4-seat-round': { visual: 1, counter: 1 },
-    '6-seat-round': { visual: 1, counter: 1.1 }
-  };
-  
-  return scaleConfig[tableKey as keyof typeof scaleConfig] || { visual: 1.0, counter: 1.0 };
+  const config = TABLE_CONFIGS.find(c => c.capacity === capacity && c.shape === shape);
+  return config
+    ? { visual: config.visualScale, counter: config.counterScale }
+    : { visual: 1.0, counter: 1.0 };
 };
 
 export const getTableTemplate = (config: TableConfig): TableTemplate => ({

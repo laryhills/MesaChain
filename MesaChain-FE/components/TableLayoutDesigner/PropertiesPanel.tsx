@@ -5,6 +5,18 @@ import { useTableLayoutStore } from '@/store/useTableLayoutStore';
 import { TableStatus } from '@/types/tableLayout';
 import { CAPACITY_OPTIONS, TABLE_CONFIGS } from './tableConfig';
 
+const checkTableCollision = (
+  table1: { position: { x: number; y: number; w: number; h: number } },
+  table2: { position: { x: number; y: number; w: number; h: number } }
+): boolean => {
+  return !(
+    table1.position.x + table1.position.w <= table2.position.x ||
+    table1.position.x >= table2.position.x + table2.position.w ||
+    table1.position.y + table1.position.h <= table2.position.y ||
+    table1.position.y >= table2.position.y + table2.position.h
+  );
+};
+
 export function PropertiesPanel() {
   const { getSelectedTable, updateTable, deleteTable, selectTable, makeTableVisible } = useTableLayoutStore();
   const selectedTable = getSelectedTable();
@@ -55,17 +67,8 @@ export function PropertiesPanel() {
           const { tables } = useTableLayoutStore.getState();
           const tempTable = { ...selectedTable, position: newPosition };
           
-          const checkCollision = (table1: any, table2: any) => {
-            return !(
-              table1.position.x + table1.position.w <= table2.position.x ||
-              table1.position.x >= table2.position.x + table2.position.w ||
-              table1.position.y + table1.position.h <= table2.position.y ||
-              table1.position.y >= table2.position.y + table2.position.h
-            );
-          };
-          
           const hasCollision = tables.some(table => 
-            table.id !== selectedTable.id && checkCollision(tempTable, table)
+            table.id !== selectedTable.id && checkTableCollision(tempTable, table)
           );
           
           if (hasCollision) {
