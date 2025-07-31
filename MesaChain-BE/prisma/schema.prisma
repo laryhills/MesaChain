@@ -1,3 +1,8 @@
+enum TokenTransactionType {
+  earn
+  spend
+  adjustment
+}
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
@@ -65,7 +70,7 @@ model User {
   statusChanges OrderStatusHistory[]
   changedStatuses ReservationStatusHistory[] @relation("ChangedByUser")
 
-  loyaltyTokens LoyaltyToken[]
+  loyaltyToken LoyaltyToken?
   rewardRedemptions RewardRedemption[]
 }
 
@@ -85,7 +90,7 @@ model LoyaltyToken {
 model TokenTransaction {
   id           String   @id @default(uuid())
   loyaltyTokenId String
-  type         String   // e.g., 'earn', 'spend', 'adjustment'
+  type         TokenTransactionType
   amount       Int
   description  String?
   createdAt    DateTime @default(now())
@@ -112,7 +117,7 @@ model RewardRedemption {
   id         String   @id @default(uuid())
   userId     String
   rewardId   String
-  status     String   // e.g., 'pending', 'completed', 'failed'
+  status     Status
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -121,6 +126,7 @@ model RewardRedemption {
 
   @@index([userId])
   @@index([rewardId])
+  @@index([userId, rewardId])
 }
 
 model StellarWallet {
