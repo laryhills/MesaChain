@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json pnpm-lock.yaml* ./
-RUN npm install -g pnpm && pnpm install --force
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
 
 # Rebuild the source code only when needed
@@ -17,6 +17,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN npm install -g pnpm && pnpm build
+RUN pnpm prisma generate
 
 # Production image, copy all the files and run next
 FROM base AS runner

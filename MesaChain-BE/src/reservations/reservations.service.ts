@@ -2,16 +2,18 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
-} from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { CreateReservationDto } from "./dto/create-reservation.dto";
-import {
+  ForbiddenException,
+ } from "@nestjs/common";
+ import { PrismaService } from "../shared/prisma.service";
+ import { CreateReservationDto } from "./dto/create-reservation.dto";
+ import {
   UpdateReservationDto,
   updateReservationSchema,
-} from "./dto/update-reservation.dto";
-// Try importing ReservationStatus from generated Prisma client, fallback to string union if not available
-let ReservationStatus: any;
-type ReservationStatusType =
+ } from "./dto/update-reservation.dto";
+ 
+ // Try importing ReservationStatus from generated Prisma client, fallback to string union if not available
+ let ReservationStatus: any;
+ type ReservationStatusType =
   | "PENDING"
   | "CONFIRMED"
   | "IN_PREPARATION"
@@ -19,10 +21,10 @@ type ReservationStatusType =
   | "DELIVERED"
   | "COMPLETED"
   | "CANCELLED";
-try {
+ try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   ReservationStatus = require("@prisma/client").ReservationStatus;
-} catch {
+ } catch {
   ReservationStatus = {
     PENDING: "PENDING",
     CONFIRMED: "CONFIRMED",
@@ -32,23 +34,22 @@ try {
     COMPLETED: "COMPLETED",
     CANCELLED: "CANCELLED",
   };
-}
-import { ReservationsGateway } from "./reservations.gateway";
-
-@Injectable()
-export class ReservationsService {
+ }
+ 
+ @Injectable()
+ export class ReservationsService {
+  constructor(
+    private prisma: PrismaService
+  ) {}
+ 
   async findUserById(userId: string) {
     return this.prisma.user.findUnique({ where: { id: userId } });
   }
-  constructor(
-    private prisma: PrismaService,
-    private gateway: ReservationsGateway
-  ) {}
-
+ 
   async create(createReservationDto: CreateReservationDto) {
     const { userId, tableId, startTime, endTime, partySize } =
       createReservationDto;
-
+ 
     // Verificar disponibilidad
     const existingReservation = await this.prisma.reservation.findFirst({
       where: {
@@ -69,13 +70,13 @@ export class ReservationsService {
         ],
       },
     });
-
+ 
     if (existingReservation) {
       throw new ConflictException(
         "La mesa no está disponible en el horario seleccionado"
       );
     }
-
+ 
     return this.prisma.reservation.create({
       data: {
         userId,
@@ -91,7 +92,7 @@ export class ReservationsService {
       },
     });
   }
-
+ 
   async findAll() {
     return this.prisma.reservation.findMany({
       include: {
@@ -100,7 +101,7 @@ export class ReservationsService {
       },
     });
   }
-
+ 
   async findOne(id: string) {
     const reservation = await this.prisma.reservation.findUnique({
       where: { id },
@@ -109,17 +110,17 @@ export class ReservationsService {
         table: true,
       },
     });
-
+ 
     if (!reservation) {
       throw new NotFoundException("Reserva no encontrada");
     }
-
+ 
     return reservation;
   }
-
+ 
   async update(id: string, updateReservationDto: UpdateReservationDto) {
     const reservation = await this.findOne(id);
-
+ 
     return this.prisma.reservation.update({
       where: { id },
       data: updateReservationDto,
@@ -129,14 +130,14 @@ export class ReservationsService {
       },
     });
   }
-
+ 
   async remove(id: string) {
     await this.findOne(id);
     return this.prisma.reservation.delete({
       where: { id },
     });
   }
-
+ 
   async getAvailability(startTime: Date, endTime: Date, partySize: number) {
     const tables = await this.prisma.table.findMany({
       where: {
@@ -165,20 +166,20 @@ export class ReservationsService {
         },
       },
     });
-
+ 
     return tables.map((table) => ({
       ...table,
       available: table.reservations.length === 0,
     }));
   }
-
+ 
   async cancel(id: string) {
     const reservation = await this.findOne(id);
-
+ 
     if (reservation.status === ReservationStatus.CANCELLED) {
       throw new ConflictException("La reserva ya está cancelada");
     }
-
+ 
     return this.prisma.reservation.update({
       where: { id },
       data: {
@@ -190,7 +191,7 @@ export class ReservationsService {
       },
     });
   }
-
+ 
   async updateStatus(
     id: string,
     status:
@@ -221,11 +222,10 @@ export class ReservationsService {
         changedById,
       },
     });
-    // Emit real-time update
-    this.gateway.broadcastStatusUpdate(id, status);
+    // TODO: Implement WebSocket broadcast without circular dependency
     return updated;
   }
-
+ 
   async getStatusHistory(id: string) {
     return this.prisma.reservationStatusHistory.findMany({
       where: { reservationId: id },
@@ -233,7 +233,7 @@ export class ReservationsService {
       include: { changedBy: true },
     });
   }
-
+ 
   async filterAndSearch({
     status,
     customer,
@@ -261,4 +261,4 @@ export class ReservationsService {
       include: { user: true, table: true },
     });
   }
-}
+ }
