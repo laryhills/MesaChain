@@ -8,6 +8,8 @@ import { ConfigModule } from "./config/config.module";
 import { OrdersModule } from "./orders/orders.module";
 import { MenuModule } from "./menu/menu.module";
 import { ReservationsModule } from "./reservations/reservations.module";
+import { HealthModule } from './health/health.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { ReservationsModule } from "./reservations/reservations.module";
     OrdersModule,
     MenuModule,
     ReservationsModule,
+    HealthModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
