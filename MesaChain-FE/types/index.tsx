@@ -22,6 +22,9 @@ export interface MenuItem {
     paymentMethod?: PaymentMethod;
   }
   
+  // Table Layout Types
+  export * from './tableLayout';
+  
   // utils/
   export type TokenTransaction = {
     id: string

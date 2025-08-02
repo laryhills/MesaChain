@@ -9,6 +9,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
 RUN npm install -g pnpm && pnpm install --force
 
+
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
@@ -34,4 +35,4 @@ USER nestjs
 
 EXPOSE 4000
 
-CMD ["node", "dist/main"] 
+CMD ["node", "dist/main"]
