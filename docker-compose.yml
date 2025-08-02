@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -34,18 +36,14 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: MesaChain-BE/Dockerfile
+      context: ./MesaChain-BE
+      dockerfile: Dockerfile
     ports:
       - "4000:4000"
-    volumes:
-      - ./MesaChain-BE:/app
-      - /app/node_modules
-      - ./MesaChain-BE/prisma:/app/prisma
     env_file:
       - .env
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=${PORT_BACKEND:-4000}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
@@ -68,13 +66,10 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: MesaChain-FE/Dockerfile
+      context: ./MesaChain-FE
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
-    volumes:
-      - ./MesaChain-FE:/app
-      - /app/node_modules
     env_file:
       - .env
     environment:
@@ -84,7 +79,8 @@ services:
       - VITE_API_BASE_URL_BACKEND=${API_BASE_URL_BACKEND}
       - VITE_API_BASE_URL_FRONTEND=${API_BASE_URL_FRONTEND}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - mesachain-network
 
@@ -95,23 +91,10 @@ services:
     environment:
       ADMINER_DEFAULT_SERVER: postgres
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - mesachain-network
-
-  alertmanager:
-    image: prom/alertmanager:v0.27.0
-    restart: unless-stopped
-    secrets:
-      - alertmanager_slack_webhook
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    networks:
-      - mesachain-network
-    depends_on:
-      - prometheus
 
   prometheus:
     image: prom/prometheus:v2.52.0
@@ -128,6 +111,20 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    secrets:
+      - alertmanager_slack_webhook
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    networks:
+      - mesachain-network
+    depends_on:
+      - prometheus
 
   grafana:
     image: grafana/grafana:10.4.2
@@ -189,7 +186,7 @@ services:
     image: docker.elastic.co/kibana/kibana:8.13.4
     restart: unless-stopped
     ports:
-      - '5601:5601'
+      - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     depends_on:
