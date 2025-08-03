@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Define interface for data structure
@@ -50,6 +50,8 @@ const mockData: MockDataType = {
 const RevenueChart = () => {
   const [range, setRange] = useState<'7d' | '30d' | 'all'>('7d');
 
+  const chartData = useMemo(() => mockData[range], [range]);
+
   return (
     <div className="bg-white p-6 rounded shadow">
       <div className="flex justify-between items-center mb-6">
@@ -58,6 +60,8 @@ const RevenueChart = () => {
         {/* Time range filter buttons */}
         <div className="flex space-x-2">
           <button
+            aria-label="Show 7 days revenue data"
+            aria-pressed={range === '7d'}
             onClick={() => setRange('7d')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               range === '7d'
@@ -68,6 +72,8 @@ const RevenueChart = () => {
             7D
           </button>
           <button
+            aria-label="Show 30 days revenue data"
+            aria-pressed={range === '30d'}
             onClick={() => setRange('30d')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               range === '30d'
@@ -78,6 +84,8 @@ const RevenueChart = () => {
             30D
           </button>
           <button
+            aria-label="Show all time revenue data"
+            aria-pressed={range === 'all'}
             onClick={() => setRange('all')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               range === 'all'
@@ -93,7 +101,11 @@ const RevenueChart = () => {
       {/* Chart container */}
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={mockData[range]}>
+          <LineChart 
+            aria-label={`Revenue chart for ${range === '7d' ? '7 days' : range === '30d' ? '30 days' : 'all time'}`}
+            role="img"
+            data={chartData}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis 
               dataKey="date" 
