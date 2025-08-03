@@ -2,22 +2,34 @@
 import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+// Define interface for data structure
+interface RevenueData {
+  date: string;
+  revenue: number;
+}
+
+interface MockDataType {
+  '7d': RevenueData[];
+  '30d': RevenueData[];
+  'all': RevenueData[];
+}
+
 // Mock data for different time ranges
-const mockData = {
+const mockData: MockDataType = {
   '7d': [
-    { date: 'Mon', revenue: 1200 },
-    { date: 'Tue', revenue: 1800 },
-    { date: 'Wed', revenue: 1500 },
-    { date: 'Thu', revenue: 2200 },
-    { date: 'Fri', revenue: 2800 },
-    { date: 'Sat', revenue: 3200 },
-    { date: 'Sun', revenue: 2400 },
+    { date: '12/16', revenue: 1200 },
+    { date: '12/17', revenue: 1800 },
+    { date: '12/18', revenue: 1500 },
+    { date: '12/19', revenue: 2200 },
+    { date: '12/20', revenue: 2800 },
+    { date: '12/21', revenue: 3200 },
+    { date: '12/22', revenue: 2400 },
   ],
   '30d': [
-    { date: 'Week 1', revenue: 8500 },
-    { date: 'Week 2', revenue: 9200 },
-    { date: 'Week 3', revenue: 7800 },
-    { date: 'Week 4', revenue: 10500 },
+    { date: '11/25', revenue: 8500 },
+    { date: '12/02', revenue: 9200 },
+    { date: '12/09', revenue: 7800 },
+    { date: '12/16', revenue: 10500 },
   ],
   'all': [
     { date: 'Jan', revenue: 25000 },
