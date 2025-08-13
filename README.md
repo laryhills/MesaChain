@@ -130,10 +130,61 @@ To switch between testnet and mainnet:
 - Store production secrets in GitHub Secrets & Variables
 - Use `.env.example` as a template for required variables
 
-## Setting Up the Frontend
-=======
+## 🚀 Running the Application
+
+### Frontend (FE)
+
+To run the frontend application:
+
+```bash
+# Navigate to the frontend directory
+cd MesaChain-FE
+
+# Install dependencies (if not already done)
+pnpm install
+
+# Start the development server
+pnpm run dev
+```
+
+The frontend will be available at http://localhost:3000 by default.
+
+### Backend (BE)
+
+To run the backend application:
+
+```bash
+# Navigate to the backend directory
+cd MesaChain-BE
+
+# Install dependencies (if not already done)
+pnpm install
+
+# Start the development server
+pnpm run dev
+```
+
+The backend API will be available at http://localhost:4000 by default.
+
+### Running Both Frontend and Backend
+
+For full application functionality, you'll need both services running. Open two terminal windows and follow these steps:
+
+Terminal 1 (Backend):
+```bash
+cd MesaChain-BE
+pnpm run dev
+```
+
+Terminal 2 (Frontend):
+```bash
+cd MesaChain-FE
+pnpm run dev
+```
+
+Make sure you have all the required environment variables set up as described in the Environment Setup section above.
+
 ## 🎯 Reservation MVP
->>>>>>> f161148 (refactor(api): remove axios in favor of fetch for http requests)
 
 ### Prerequisites
 - Node.js 18 or higher

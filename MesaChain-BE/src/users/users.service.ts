@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../shared/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole as UserRoleInterface } from '../interfaces/user.interface';
 import { AuditService } from '../auth/services/audit.service';
+import { UserRole, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()

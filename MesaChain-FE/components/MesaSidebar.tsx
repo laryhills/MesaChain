@@ -8,6 +8,7 @@ import {
   FaChartBar,
   FaHistory,
   FaCog,
+  FaStar,
 } from "react-icons/fa";
 import SidebarItem from "./sidebar/SideBarItems";
 import UserProfile from "./sidebar/UserProfile";
@@ -31,6 +32,7 @@ const Sidebar: React.FC = () => {
     { icon: FaHistory, label: "Orders History", href: "/orders-history", permission: Permission.ORDER_HISTORY },
     { icon: FaUsers, label: "Customers", href: "/customers", permission: Permission.CUSTOMERS },
     { icon: FaCog, label: "Settings", href: "/settings", permission: Permission.ADMIN },
+    { icon: FaStar, label: "Loyalty", href: "/loyalty", permission: null },
   ];
 
   // Filter sidebar items based on user permissions
