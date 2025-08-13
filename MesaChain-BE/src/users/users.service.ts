@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRole } from '../interfaces/user.interface';
+import { UserRole as UserRoleInterface } from '../interfaces/user.interface';
 import { AuditService } from '../auth/services/audit.service';
 import * as bcrypt from 'bcrypt';
 
@@ -13,7 +13,7 @@ export class UsersService {
   ) { }
 
   async findAll(currentUser: any) {
-    if (currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.role !== UserRoleInterface.ADMIN) {
       throw new ForbiddenException('Only admins can access this resource');
     }
 
@@ -58,14 +58,14 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    if (currentUser.id !== id && currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.id !== id && currentUser.role !== UserRoleInterface.ADMIN) {
       throw new ForbiddenException('You can only update your own profile');
     }
 
     // Only admins can change roles
     let roleChanged = false;
     let oldRole = user.role;
-    if (dto.role && currentUser.role !== UserRole.ADMIN) {
+    if (dto.role && currentUser.role !== UserRoleInterface.ADMIN) {
       delete dto.role;
     } else if (dto.role && dto.role !== user.role) {
       roleChanged = true;
@@ -105,7 +105,7 @@ export class UsersService {
   }
 
   async remove(id: string, currentUser: any) {
-    if (currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.role !== UserRoleInterface.ADMIN) {
       throw new ForbiddenException('Only admins can delete users');
     }
 
@@ -120,13 +120,13 @@ export class UsersService {
   }
 
   async findStaff(currentUser: any) {
-    if (currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.role !== UserRoleInterface.ADMIN) {
       throw new ForbiddenException('Only admins can access this resource');
     }
 
     return this.prisma.user.findMany({
       where: {
-        role: UserRole.STAFF,
+        role: UserRoleInterface.STAFF,
       },
       select: {
         id: true,
