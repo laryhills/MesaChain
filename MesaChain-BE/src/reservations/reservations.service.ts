@@ -2,6 +2,8 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateReservationDto } from "./dto/create-reservation.dto";
@@ -42,8 +44,9 @@ export class ReservationsService {
   }
   constructor(
     private prisma: PrismaService,
+    @Inject(forwardRef(() => ReservationsGateway))
     private gateway: ReservationsGateway
-  ) {}
+  ) { }
 
   async create(createReservationDto: CreateReservationDto) {
     const { userId, tableId, startTime, endTime, partySize } =
@@ -240,13 +243,13 @@ export class ReservationsService {
     orderId,
   }: {
     status?:
-      | "PENDING"
-      | "CONFIRMED"
-      | "IN_PREPARATION"
-      | "READY"
-      | "DELIVERED"
-      | "COMPLETED"
-      | "CANCELLED";
+    | "PENDING"
+    | "CONFIRMED"
+    | "IN_PREPARATION"
+    | "READY"
+    | "DELIVERED"
+    | "COMPLETED"
+    | "CANCELLED";
     customer?: string;
     orderId?: string;
   }) {

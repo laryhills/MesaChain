@@ -1,18 +1,22 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRole } from 'prisma';
+import { UserRole } from '../interfaces/user.interface';
+import { AuditService } from '../auth/services/audit.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService
+  ) { }
 
   async findAll(currentUser: any) {
     if (currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Only admins can access this resource');
     }
-    
+
     return this.prisma.user.findMany({
       select: {
         id: true,
@@ -59,8 +63,12 @@ export class UsersService {
     }
 
     // Only admins can change roles
+    let roleChanged = false;
+    let oldRole = user.role;
     if (dto.role && currentUser.role !== UserRole.ADMIN) {
       delete dto.role;
+    } else if (dto.role && dto.role !== user.role) {
+      roleChanged = true;
     }
 
     const updateData: any = { ...dto };
@@ -81,6 +89,17 @@ export class UsersService {
         updatedAt: true,
       },
     });
+
+    // Log role change if it occurred
+    if (roleChanged && dto.role) {
+      await this.auditService.logRoleChange(
+        id,
+        oldRole,
+        dto.role,
+        currentUser.id,
+        `Role changed from ${oldRole} to ${dto.role}`
+      );
+    }
 
     return updatedUser;
   }
